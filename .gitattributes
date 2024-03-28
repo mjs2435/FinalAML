@@ -1,0 +1,2 @@
+application_data.csv filter=lfs diff=lfs merge=lfs -text
+previous_application.csv filter=lfs diff=lfs merge=lfs -text
