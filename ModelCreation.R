@@ -8,18 +8,9 @@ library(randomForest)
 
 # Random Forest Training and Evaluation
 
-transformed_train$TARGET[transformed_train$TARGET == 0] = 'n'
-transformed_train$TARGET[transformed_train$TARGET == 1] = 'p'
-transformed_train$TARGET = as.factor(transformed_train$TARGET)
 
-transformed_test$TARGET[transformed_test$TARGET == 0] = 'n'
-transformed_test$TARGET[transformed_test$TARGET == 1] = 'p'
-transformed_test$TARGET = as.factor(transformed_test$TARGET)
 
-tot_neg = sum(transformed_train$TARGET == 'n')
-tot_pos = sum(transformed_train$TARGET == 'p')
-
-a / (a + b)
+# a / (a + b)
 
 
 
@@ -193,13 +184,13 @@ resample <- trainControl(method = "cv",
 
 
 
-hyper_grid <- expand.grid(nrounds = c(100, 200, 300),   
+hyper_grid <- expand.grid(nrounds = c(300, 400),   
                           
-                          max_depth = c(4, 6, 8, 10), 
+                          max_depth = c(1, 2, 4), 
                           
-                          eta = c(0.05, 0.1, 0.2, 0.3),    
+                          eta = c(0.05, 0.01),    
                           
-                          min_child_weight = c(5, 10, 15), 
+                          min_child_weight = c(15), 
                           
                           subsample = 0.6, 
                           
@@ -209,13 +200,13 @@ hyper_grid <- expand.grid(nrounds = c(100, 200, 300),
 
 
 
-xg_fit <- train(X16 ~ .,
+xg_fit <- train(TARGET ~ .,
                 
-                data = crx_train, 
+                data = transformed_train, 
                 
                 method = "xgbTree",
                 
-                trControl = resample, 
+                trControl = resample,
                 
                 tuneGrid = hyper_grid,
                 
@@ -223,15 +214,18 @@ xg_fit <- train(X16 ~ .,
 ggplot(xg_fit)
 
 plot(xg_fit, metric = "ROC", plotType = "level")
+plot(xg_fit, metric = "Sens", plotType = "level")
+plot(xg_fit, metric = "Spec", plotType = "level")
+plot(xg_fit, metric = "ROCSD", plotType = "level")
 
 # Final Model
 
 fitControl_final <- trainControl(method = "none", classProbs = TRUE, summaryFunction = twoClassSummary)   # no resampling applies to the data
 
 
-XG_final <- train(X16 ~., 
+XG_final <- train(TARGET ~., 
                   
-                  data = crx_train,
+                  data = transformed_train,
                   
                   method = "xgbTree",
                   
@@ -239,9 +233,9 @@ XG_final <- train(X16 ~.,
                   
                   metric = "ROC",
                   
-                  tuneGrid = data.frame(nrounds = 100,
+                  tuneGrid = data.frame(nrounds = 400,
                                         
-                                        max_depth = 8,
+                                        max_depth = 4,
                                         
                                         eta = 0.05,
                                         
@@ -249,18 +243,18 @@ XG_final <- train(X16 ~.,
                                         
                                         colsample_bytree = 1,
                                         
-                                        min_child_weight = 5,
+                                        min_child_weight = 15,
                                         
                                         subsample = .6)
 )
 
-xg_pred_train <- predict(XG_final, newdata = crx_train)
+xg_pred_train <- predict(XG_final, newdata = transformed_train)
 
-xg_pred_test <- predict(XG_final, newdata = crx_test)
+xg_pred_test <- predict(XG_final, newdata = transformed_test)
 
-confusionMatrix(data=xg_pred_train, reference=crx_train$X16)
+confusionMatrix(data=xg_pred_train, reference=transformed_train$TARGET)
 
-confusionMatrix(data=xg_pred_test, reference=crx_test$X16)
+confusionMatrix(data=xg_pred_test, reference=transformed_test$TARGET)
 
 
 # SVM Training and Evaluation
@@ -299,7 +293,7 @@ SVMGrid_RBF <- expand.grid (sigma = c(0.01, 0.1, 1, 10),  # RBF (Radial Basis Fu
 
 set.seed(1)
 
-SVM_Linear <- train(X16 ~ ., data = crx_train,
+SVM_Linear <- train(TARGET ~ ., data = transformed_train,
                     
                     method = "svmLinear",
                     
@@ -317,7 +311,7 @@ SVM_Linear <- train(X16 ~ ., data = crx_train,
 
 set.seed(1)
 
-SVM_Poly <- train(X16 ~ ., data = crx_train,
+SVM_Poly <- train(TARGET ~ ., data = transformed_train,
                   
                   method = "svmPoly",
                   
@@ -335,7 +329,7 @@ SVM_Poly <- train(X16 ~ ., data = crx_train,
 
 set.seed(1)
 
-SVM_RBF <- train(X16 ~ ., data = crx_train,
+SVM_RBF <- train(TARGET ~ ., data = transformed_train,
                  
                  method = "svmRadial",
                  

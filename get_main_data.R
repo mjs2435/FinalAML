@@ -77,15 +77,7 @@ cc_train = training(split)
 
 cc_test = testing(split)
 
-## Data pre-processing ##
 
-# Convert all character features to factors
-# Remove all NZV features
-# Impute KNN for remaining missing values 
-# Center and scale numeric predictors
-# Pool infrequently occurring values into category called "other" (applies to NAME_TYPE_SUITE, NAME_INCOME_TYPE, NAME_HOUSING_TYPE)
-# Dummy encode all categorical features
-# Principal component analysis for numeric predictors(?)
 blueprint = recipe(TARGET ~ ., data = cc_train) %>%
   
   step_string2factor(all_nominal_predictors()) %>%
@@ -109,3 +101,13 @@ blueprint_prep = prep(blueprint, training = cc_train)
 transformed_train = bake(blueprint_prep, new_data = cc_train)
 
 transformed_test = bake(blueprint_prep, new_data = cc_test)
+transformed_train$TARGET[transformed_train$TARGET == 0] = 'n'
+transformed_train$TARGET[transformed_train$TARGET == 1] = 'p'
+transformed_train$TARGET = as.factor(transformed_train$TARGET)
+
+transformed_test$TARGET[transformed_test$TARGET == 0] = 'n'
+transformed_test$TARGET[transformed_test$TARGET == 1] = 'p'
+transformed_test$TARGET = as.factor(transformed_test$TARGET)
+
+tot_neg = sum(transformed_train$TARGET == 'n')
+tot_pos = sum(transformed_train$TARGET == 'p')
