@@ -3,71 +3,68 @@ library(caret)
 library(rpart) # For Decision Tree
 library(randomForest) # For Random Forest
 library(e1071) # For SVM
+library(shinythemes)
+library(shinycssloaders)
+library(ggExtra)
+library(data.table)
+library(ggplot2)
+library(DT)
 
-# Define server logic required for the app
-server <- function(input, output) {
+data_initial <- read.csv("data/application_data.csv", header = TRUE)
+
+server <- function(input, output, session) {
   
-  # Reactive expression for handling data input
-  data <- reactive({
-    # Decide between uploaded data and default data
-    if(input$dataSource == "upload") {
-      req(input$dataFile)
-      inFile <- input$dataFile
-      df <- read.csv(inFile$datapath)
+  # Reactive expression to handle file upload or selection
+  File <- reactive({
+    if (input$dataset == 'Upload your own file') {
+      req(input$file)
+      File <- input$file
+      df <- data.frame(rbindlist(lapply(File$datapath, fread), use.names = TRUE, fill = TRUE))
+      return(df)
     } else {
-      # Adjust the path to your default CSV file as necessary
-      defaultFilePath <- "sample_data.csv"#TODO:change to the real dataset 
-      df <- read.csv(defaultFilePath)
+      return(data_initial)
     }
-    return(df)
   })
   
-  output$dataPreview <- renderTable({
-    df <- data() # This uses the 'data' reactive expression already defined
-    if(is.null(df)) return()
-    head(df, 10) # Return the first 10 rows of the dataset
+  # Update response and explanatory variable choices
+  observeEvent(File(), {
+    updateSelectInput(session, "response", choices = names(File()))
+    updateSelectInput(session, "explanatory", choices = names(File()))
+    updateSelectInput(session, "var", choices = names(File()))
   })
   
-  # Observes when the 'Train Model' button is clicked
-  observeEvent(input$trainBtn, {
-    df <- data()
-    if(is.null(df)) return()
-    
-    # Split data
-    set.seed(123) # For reproducibility
-    trainIndex <- createDataPartition(df[,ncol(df)], p = input$trainSplit / 100, list = FALSE)
-    trainingData <- df[trainIndex, ]
-    testingData <- df[-trainIndex, ]
-    
-    # Train model based on selected type
-    model <- switch(input$modelType,
-                    dt = rpart(as.formula(paste("y ~", paste(names(df)[-ncol(df)], collapse = "+"))), 
-                               data = trainingData, method = "class"),
-                    rf = randomForest(as.formula(paste("y ~", paste(names(df)[-ncol(df)], collapse = "+"))), 
-                                      data = trainingData),
-                    svm = svm(as.formula(paste("y ~", paste(names(df)[-ncol(df)], collapse = "+"))), 
-                              data = trainingData))
-    output$dataPreview <- renderTable({
-    df <- data() # This uses the 'data' reactive expression already defined
-    if(is.null(df)) return()
-    head(df, 10) # Return the first 10 rows of the dataset
-})
-    
-    # Plot the model (if applicable)
-    output$plotArea <- renderPlot({
-      plot(model)
-    })
-    
-    # Model summary
-    output$modelSummary <- renderPrint({
-      summary(model)
-    })
-    
-    # Predictions
-    output$predictions <- renderTable({
-      predictions <- predict(model, newdata = testingData)
-      data.frame(Actual = testingData[,ncol(testingData)], Predicted = predictions)
-    })
+  # Render data preview with DT
+  output$data_preview <- renderDT({
+    datatable(File(), options = list(pageLength = 10))
+  })
+  
+  # Render scatterplot
+  output$plot1 <- renderPlot({
+    p <- ggplot(data = File(), aes_string(x = input$explanatory, y = input$response)) +
+      geom_point(alpha = input$shade) +
+      theme_minimal()
+    if (input$marginal) {
+      p <- ggMarginal(p, type = "histogram")
+    }
+    p
+  })
+  
+  # Render numeric summary table with DT
+  output$result1 <- renderDT({
+    summary_data <- summary(File()[[input$response]])
+    datatable(data.frame(Measure = names(summary_data), Value = as.character(summary_data)), options = list(pageLength = 5))
+  })
+  
+  # Histogram plot
+  plot2 <- eventReactive(input$click, {
+    ggplot(data = File(), aes_string(x = input$var)) +
+      geom_histogram(binwidth = diff(range(File()[[input$var]]) / input$bins), fill = input$color, color = "black") +
+      labs(x = input$var, y = "Frequency", title = "Histogram") +
+      theme_minimal()
+  })
+  
+  # Render histogram plot
+  output$plot2 <- renderPlot({
+    plot2()
   })
 }
-
