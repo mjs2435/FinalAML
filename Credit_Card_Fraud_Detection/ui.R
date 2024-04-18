@@ -1,4 +1,8 @@
 library(shiny)
+library(shinythemes)
+library(shinycssloaders)
+library(ggExtra)
+library(data.table)
 
 # Define UI for application
 ui <- fluidPage(
@@ -16,17 +20,19 @@ ui <- fluidPage(
                      selected = "default"),
         sliderInput("trainSplit", "Training Set Split Percentage", 
                     min = 50, max = 90, value = 70, step = 5, 
-                    post = "%")
+                    post = "%"),
+        selectInput('modelType', 'Select Model Type', 
+                    choices = c('Decision Tree' = 'dt', 'Random Forest' = 'rf', 'SVM' = 'svm')),
+        actionButton("trainBtn", "Train Model")
+        
       ),
       
       # Model type selection shown on all tabs except "Data Preview"
       conditionalPanel(
         condition = "input.mainTabset != 'DataPreview'",
-        selectInput('modelType', 'Select Model Type', 
-                    choices = c('Decision Tree' = 'dt', 'Random Forest' = 'rf', 'SVM' = 'svm'))
       ),
       
-      actionButton("trainBtn", "Train Model")
+      
     ),
     
     mainPanel(
