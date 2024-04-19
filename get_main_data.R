@@ -10,9 +10,11 @@ library(SmartEDA)
 
 library(gplots)
 
+library(randomForest)
+
 ## EDA ##
 
-cc_fraud = read.csv("C:/Users/mjstr/Desktop/Git Repository Final Python Project/FinalAML/application_data.csv")
+cc_fraud = read.csv("C:/Users/mjstr/Desktop/Git Repository Final Python Project/FinalAML/application_data.csv", )
 
 summary(cc_fraud)
 
@@ -100,6 +102,9 @@ blueprint_prep = prep(blueprint, training = cc_train)
 # Transforming data
 transformed_train = bake(blueprint_prep, new_data = cc_train)
 
+tot_neg = sum(transformed_train$TARGET == 'n')
+tot_pos = sum(transformed_train$TARGET == 'p')
+
 transformed_test = bake(blueprint_prep, new_data = cc_test)
 transformed_train$TARGET[transformed_train$TARGET == 0] = 'n'
 transformed_train$TARGET[transformed_train$TARGET == 1] = 'p'
@@ -109,5 +114,4 @@ transformed_test$TARGET[transformed_test$TARGET == 0] = 'n'
 transformed_test$TARGET[transformed_test$TARGET == 1] = 'p'
 transformed_test$TARGET = as.factor(transformed_test$TARGET)
 
-tot_neg = sum(transformed_train$TARGET == 'n')
-tot_pos = sum(transformed_train$TARGET == 'p')
+

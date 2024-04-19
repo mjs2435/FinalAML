@@ -9,9 +9,84 @@ library(randomForest)
 # Random Forest Training and Evaluation
 
 
+trans_target <- function(df, old_names = c(1,2), new_names = c("n", "p"), targ_name = "TARGET"){
+  df[[targ_name]][df[[targ_name]] == old_names[1]] = new_names[1]
+  df[[targ_name]][df[[targ_name]] == old_names[2]] = new_names[2]
+  transformed_train$TARGET = as.factor(transformed_train$TARGET)
+  return(df)
+  
+}
+#corr_df = trans_target(transformed_train)
+#print(typeof(2) == typeof(1))
+balance_df <- function(df_new, final_row = -1){
+  if (typeof(df_new$TARGET[1]) == typeof(1)){
+    df = trans_target(df_new)
+  }
+  else{
+    df = df_new
+  }
+  
+  all_neg = df[df$TARGET == 'n',]
+  all_pos = df[df$TARGET == 'p',]
+  print(nrow(all_pos))
+  tot_neg = nrow(all_neg)
+  tot_pos = nrow(all_pos)
+  if (tot_neg > tot_pos){ # likely here
+    min_cut = tot_pos
+    max_cut = tot_neg
+    df_to_subset = all_neg
+    df_to_bind = all_pos
+  } else {
+    min_cut = tot_neg
+    max_cut = tot_pos
+    df_to_subset = all_pos
+    df_to_bind = all_neg
+  }
+  subs_large = df_to_subset[sample(max_cut, min_cut),]
+  #print(sample(max_cut, min_cut))
+  df_bal = rbind(subs_large, df_to_bind)
+  #print(final_row)
+  if (final_row != -1 & nrow(df_bal) > final_row){
+    df_red = df_bal[sample(nrow(df_bal), final_row),]
+    print(nrow(df_red))
+    return(df_red)
+  }
+  return(df_bal)
+  
+}
+split_df <- function(df, prop = .7){
+  return(sample(nrow(df), nrow(df) * prop))
+}
+
+do_pca <- function(df, targ_name = "TARGET", num_comp = 10){
+  
+  targ = df[[targ_name]]
+  
+  df[[targ_name]] <- NULL
+  pca_raw = prcomp(df)
+  pca_vals = pca_raw$x[,1:num_comp]
+  return(data.frame(cbind(TARGET = targ, pca_vals)))
+}
+
+
+
+all_dat = rbind(transformed_train, transformed_test)
+pc_df = do_pca(all_dat, "TARGET")
+bpc = balance_df(pc_df)
+s_plit = split_df(bpc)
+
+pc_train=bpc[s_plit,]
+pc_test=bpc[-s_plit,]
+
+sum(bpc$TARGET=="p")
+sum(transformed_train$TARGET == "n")
+
+
+
+#transformed_train[s,]
+#b = balance_df(transformed_train, final_row = 1000)
 
 # a / (a + b)
-
 
 
 initial_rf <- randomForest(TARGET ~., data = transformed_train)
@@ -100,6 +175,16 @@ all_pos = tt[tt$TARGET == 'p',]
 subs_neg = all_neg[sample(tot_neg, tot_pos),]
 bal_train = rbind(subs_neg, all_pos)
 
+
+tts = transformed_test
+tot_neg_tst = sum(transformed_test$TARGET == 'n')
+tot_pos_tst = sum(transformed_test$TARGET == 'p')
+
+test_neg = tts[tts$TARGET == 'n',]
+test_pos = tts[tts$TARGET == 'p',]
+subs_neg_tst = test_neg[sample(tot_neg_tst, tot_pos_tst),]
+bal_test = rbind(subs_neg_tst, test_pos)
+
 # run training/testing again, but with bal_train
 
 initial_rf_bal <- randomForest(TARGET ~., data = bal_train)
@@ -161,11 +246,84 @@ rf_pred_train_bal <- predict(RF_final_bal, newdata = transformed_train)
 
 rf_pred_test_bal <- predict(RF_final_bal, newdata = transformed_test)
 
+rf_pred_test_bal_set = predict(RF_final_bal, newdata = bal_test)
+
 confusionMatrix(data=rf_pred_train_bal_actual, reference=bal_train$TARGET)
 
 confusionMatrix(data=rf_pred_train_bal, reference=transformed_train$TARGET)
 
 confusionMatrix(data=rf_pred_test_bal, reference=transformed_test$TARGET)
+
+confusionMatrix(data=rf_pred_test_bal_set, reference=bal_test$TARGET)
+
+#### RF with Principal Components, Balanced ####
+
+hyper_grid <- expand.grid(mtry = c(5,7,9), 
+                          
+                          splitrule = c("gini", "extratrees", "hellinger"), 
+                          
+                          min.node.size = c(5, 7, 9)) 
+
+rf_fit_bal <- train(TARGET ~ .,
+                    
+                    data = pc_train, 
+                    
+                    method = "ranger", 
+                    
+                    trControl = resample, 
+                    
+                    tuneGrid = hyper_grid,
+                    
+                    metric = "ROC",
+                    
+                    num.trees = 200)
+
+
+ggplot(rf_fit_bal)
+
+plot(rf_fit_bal, metric = "ROC", plotType = "level")
+plot(rf_fit_bal, metric = "Sens", plotType = "level")
+plot(rf_fit_bal, metric = "Spec", plotType = "level")
+plot(rf_fit_bal, metric = "ROCSD", plotType = "level")
+
+
+
+fitControl_final_bal <- trainControl(method = "none", classProbs = TRUE, summaryFunction = twoClassSummary)   # no resampling applies to the data
+
+
+RF_final_bal <- train(TARGET ~., 
+                      
+                      data = bal_train,
+                      
+                      method = "ranger",
+                      
+                      trControl = fitControl_final_bal,
+                      
+                      metric = "ROC",
+                      
+                      tuneGrid = data.frame(mtry = 13,
+                                            
+                                            min.node.size = 9,
+                                            
+                                            splitrule = "hellinger"),
+                      
+                      num.trees = 200)
+
+rf_pred_train_bal_actual <- predict(RF_final_bal, newdata = bal_train)
+
+rf_pred_train_bal <- predict(RF_final_bal, newdata = transformed_train)
+
+rf_pred_test_bal <- predict(RF_final_bal, newdata = transformed_test)
+
+rf_pred_test_bal_set = predict(RF_final_bal, newdata = bal_test)
+
+confusionMatrix(data=rf_pred_train_bal_actual, reference=bal_train$TARGET)
+
+confusionMatrix(data=rf_pred_train_bal, reference=transformed_train$TARGET)
+
+confusionMatrix(data=rf_pred_test_bal, reference=transformed_test$TARGET)
+
+confusionMatrix(data=rf_pred_test_bal_set, reference=bal_test$TARGET)
 
 
 
@@ -256,11 +414,77 @@ confusionMatrix(data=xg_pred_train, reference=transformed_train$TARGET)
 
 confusionMatrix(data=xg_pred_test, reference=transformed_test$TARGET)
 
+# Artificial Neural Network Model Training and Evaluation
+
+
+## Resampling strategy
+
+resample <- trainControl(method = "cv", number = 5, classProbs = TRUE, summaryFunction = twoClassSummary)
+
+
+## Grid of hyperparameter values
+
+grid <- expand.grid(size = c(2, 5, 10, 15),
+                    decay = c(0, 0.1, 0.05, 0.01))  
+# rang = c(0.1, 0.9),  
+# algorithm = "rprop+"
+
+## Tuning Hyperparameters
+
+ann_fit <- train(TARGET ~ .,
+                 
+                 data = transformed_train, 
+                 
+                 method = "nnet", 
+                 
+                 trControl = resample, 
+                 
+                 tuneGrid = grid,
+                 
+                 metric = "ROC")
+
+
+ggplot(ann_fit)
+
+plot(ann_fit, metric = "ROC", plotType = "level")
+plot(ann_fit, metric = "Sens", plotType = "level")
+plot(ann_fit, metric = "Spec", plotType = "level")
+plot(ann_fit, metric = "ROCSD", plotType = "level")
+# use Hidden = 10, Weight Decay = 0.1
+
+fitControl_final <- trainControl(method = "none", classProbs = TRUE, summaryFunction = twoClassSummary)   # no resampling applies to the data
+
+
+ANN_final <- train(TARGET ~., 
+                   
+                   data = transformed_train,
+                   
+                   method = "nnet",
+                   
+                   trControl = fitControl_final,
+                   
+                   metric = "ROC",
+                   
+                   tuneGrid = data.frame(size = 15,
+                                         
+                                         decay = 0
+                   )
+)
+
+ANN_pred_train <- predict(ANN_final, newdata = transformed_train)
+
+ANN_pred_test <- predict(ANN_final, newdata = transformed_test)
+
+confusionMatrix(data=ANN_pred_train, reference=transformed_train$TARGET)
+
+confusionMatrix(data=ANN_pred_test, reference=transformed_test$TARGET)
+
+
 
 # SVM Training and Evaluation
 
 ## Support Vector Machine (SVM): Tuning hyperparameters
-
+ 
 resample <- trainControl(method = "cv",
                          
                          number = 5,
