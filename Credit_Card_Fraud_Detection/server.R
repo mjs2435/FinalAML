@@ -8,9 +8,9 @@ library(shinycssloaders)
 library(ggExtra)
 library(data.table)
 library(ggplot2)
-library(DT)
+library(DT)  # Ensure DT is loaded for advanced table features
 
-data_initial <- read.csv("data/application_data.csv", header = TRUE)
+data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
 
 server <- function(input, output, session) {
   
@@ -33,11 +33,6 @@ server <- function(input, output, session) {
     updateSelectInput(session, "var", choices = names(File()))
   })
   
-  # Render data preview with DT
-  output$data_preview <- renderDT({
-    datatable(File(), options = list(pageLength = 10))
-  })
-  
   # Render scatterplot
   output$plot1 <- renderPlot({
     p <- ggplot(data = File(), aes_string(x = input$explanatory, y = input$response)) +
@@ -49,11 +44,18 @@ server <- function(input, output, session) {
     p
   })
   
-  # Render numeric summary table with DT
-  output$result1 <- renderDT({
-    summary_data <- summary(File()[[input$response]])
-    datatable(data.frame(Measure = names(summary_data), Value = as.character(summary_data)), options = list(pageLength = 5))
+  #Render data pre_view
+  output$data_preview <- renderDataTable({
+    datatable(
+      File(),
+      options = list(
+        scrollY = TRUE,   # Sets the height of the scrollable area
+        scrollX = TRUE,
+        paging = TRUE       # Disables pagination, adjust as needed
+      )
+    )
   })
+  
   
   # Histogram plot
   plot2 <- eventReactive(input$click, {

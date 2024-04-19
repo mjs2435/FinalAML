@@ -29,12 +29,13 @@ ui <- fluidPage(
                  )
                ),
                mainPanel(
-                 DT::DTOutput("data_preview")
+                 dataTableOutput("data_preview")
+                 
                )
              )
     ),
     
-    tabPanel("Data Exploration",
+    tabPanel("Data Exploration",icon = icon("chart-line"),
              titlePanel("Visualization"),
              sidebarLayout(
                sidebarPanel(
@@ -62,10 +63,17 @@ ui <- fluidPage(
                  tabsetPanel(id = "tabSelected",
                              tabPanel("Scatterplot", plotOutput("plot1")),
                              tabPanel("Histogram", plotOutput("plot2")),
-                             tabPanel("Numeric Summary", DT::DTOutput("result1"))
+                             tabPanel("Numeric Summary", dataTableOutput("result1"))
                              
                  )
                )
+             )
+    ),
+    
+    tabPanel("Model Exploration", icon = icon("sliders"),
+             titlePanel("Construct Model"),
+             mainPanel(
+               helpText("STAT 3106: Applied Machine Learning - Final Project ......")
              )
     )
   )
