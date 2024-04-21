@@ -14,12 +14,7 @@ train_XGB <- function(train, grid){
                   trControl = resample,
                   tuneGrid = grid,
                   metric = "ROC")
-  ggplot(xg_fit)
-  
-  plot(xg_fit, metric = "ROC", plotType = "level")
-  plot(xg_fit, metric = "Sens", plotType = "level")
-  plot(xg_fit, metric = "Spec", plotType = "level")
-  plot(xg_fit, metric = "ROCSD", plotType = "level")
+
   
   return(xg_fit)
   
@@ -44,34 +39,51 @@ final_XGB_mod <- function(train, test, best_grid){
                     tuneGrid = best_grid
   )
   
-  xg_pred_train <- predict(XG_final, newdata = train)
-  
-  xg_pred_test <- predict(XG_final, newdata = test)
-  
-  confusionMatrix(data=xg_pred_train, reference=train$TARGET)
-  
-  confusionMatrix(data=xg_pred_test, reference=test$TARGET)
+
   
   return(XG_final)
 
 }
 
-grid <- expand.grid(nrounds = c(300, 400),   
-                          max_depth = c(1, 2, 4), 
-                          eta = c(0.05, 0.01),    
-                          min_child_weight = c(15), 
+grid <- expand.grid(nrounds = c(300, 400, 500, 600),   
+                          max_depth = c(1, 2, 4, 8, 16), 
+                          eta = c(0.05, 0.01, 0.005, 0.001),    
+                          min_child_weight = c(14, 15, 16, 17), 
                           subsample = 0.6, 
                           gamma = 0,
                           colsample_bytree = 1)
 
-best_grid = data.frame(nrounds = 400,
-           max_depth = 4,
-           eta = 0.05,
-           gamma = 0,
-           colsample_bytree = 1,
-           min_child_weight = 15,
-           subsample = .6)
 
-train_XGB(transformed_train, grid)
 
-final_XGB_mod(transformed_train, transformed_test, best_grid)
+b = balance_df(df8, final_row = 10000)
+sp = split_df(b)
+tr = b[sp,]
+ts = b[-sp,]
+
+
+XGB_all = train_XGB(tr, grid)
+
+ggplot(XGB_all)
+
+plot(XGB_all, metric = "ROC", plotType = "level")
+plot(XGB_all, metric = "Sens", plotType = "level")
+plot(XGB_all, metric = "Spec", plotType = "level")
+plot(XGB_all, metric = "ROCSD", plotType = "level")
+
+best_grid = data.frame(nrounds = 500,
+                       max_depth = 16,
+                       eta = 0.010,
+                       gamma = 0,
+                       colsample_bytree = 1,
+                       min_child_weight = 16,
+                       subsample = .6)
+
+XGB_mod = final_XGB_mod(tr, ts, best_grid)
+
+xg_pred_train <- predict(XGB_mod, newdata = tr)
+
+xg_pred_test <- predict(XGB_mod, newdata = ts)
+
+confusionMatrix(data=xg_pred_train, reference=tr$TARGET)
+
+confusionMatrix(data=xg_pred_test, reference=ts$TARGET)

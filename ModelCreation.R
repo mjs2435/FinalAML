@@ -46,6 +46,7 @@ balance_df <- function(df_new, final_row = -1){
   #print(sample(max_cut, min_cut))
   df_bal = rbind(subs_large, df_to_bind)
   #print(final_row)
+  df_bal$TARGET = as.factor(df_bal$TARGET)
   if (final_row != -1 & nrow(df_bal) > final_row){
     df_red = df_bal[sample(nrow(df_bal), final_row),]
     print(nrow(df_red))
@@ -79,8 +80,20 @@ pc_train=bpc[s_plit,]
 pc_test=bpc[-s_plit,]
 
 sum(bpc$TARGET=="p")
-sum(transformed_train$TARGET == "n")
+sum(pc_train$TARGET == "n")
 
+prob_yes <- function(object, newdata) {                        # wrapper function
+  
+  predict(object, newdata = newdata, type = "prob")[, "p"]
+  
+}
+
+do_vip <- function(model, train_dat){
+  train_dat$TARGET = as.factor(train_dat$TARGET)
+  vip(model, method = "permute", train = train_dat, target = "TARGET",
+      
+      metric = "roc_auc", reference_class = "p", pred_wrapper = prob_yes)
+}
 
 
 #transformed_train[s,]
@@ -293,7 +306,7 @@ fitControl_final_bal <- trainControl(method = "none", classProbs = TRUE, summary
 
 RF_final_bal <- train(TARGET ~., 
                       
-                      data = bal_train,
+                      data = pc_train,
                       
                       method = "ranger",
                       
@@ -301,31 +314,25 @@ RF_final_bal <- train(TARGET ~.,
                       
                       metric = "ROC",
                       
-                      tuneGrid = data.frame(mtry = 13,
+                      tuneGrid = data.frame(mtry = 5,
                                             
-                                            min.node.size = 9,
+                                            min.node.size = 5,
                                             
-                                            splitrule = "hellinger"),
+                                            splitrule = "extratrees"),
                       
                       num.trees = 200)
 
-rf_pred_train_bal_actual <- predict(RF_final_bal, newdata = bal_train)
+rf_pred_train_bal <- predict(RF_final_bal, newdata = pc_train)
 
-rf_pred_train_bal <- predict(RF_final_bal, newdata = transformed_train)
+rf_pred_test_bal <- predict(RF_final_bal, newdata = pc_test)
 
-rf_pred_test_bal <- predict(RF_final_bal, newdata = transformed_test)
+confusionMatrix(data=rf_pred_train_bal, reference=as.factor(pc_train$TARGET))
 
-rf_pred_test_bal_set = predict(RF_final_bal, newdata = bal_test)
+confusionMatrix(data=rf_pred_test_bal, reference=as.factor(pc_test$TARGET))
 
-confusionMatrix(data=rf_pred_train_bal_actual, reference=bal_train$TARGET)
+pc_train$TARGET = as.factor(pc_train$TARGET)
 
-confusionMatrix(data=rf_pred_train_bal, reference=transformed_train$TARGET)
-
-confusionMatrix(data=rf_pred_test_bal, reference=transformed_test$TARGET)
-
-confusionMatrix(data=rf_pred_test_bal_set, reference=bal_test$TARGET)
-
-
+do_vip(RF_final_bal, pc_train)
 
 
 
@@ -738,9 +745,9 @@ fitControl_final <- trainControl(method = "none", classProbs = TRUE)
 
 # Random Forest (RF)
 
-RF <- train(Attrition ~ .,
+RF <- train(TARGET ~ .,
             
-            data = attrition_train,
+            data = transformed_train,
             
             method = "ranger",
             
@@ -761,16 +768,37 @@ RF <- train(Attrition ~ .,
             importance = "impurity")
 
 
-RF_pred_train <- predict(RF, newdata = attrition_train)
+RF_pred_train <- predict(RF, newdata = transformed_train)
 
-RF_train_results <- confusionMatrix(attrition_train$Attrition, RF_pred_train)
+RF_train_results <- confusionMatrix(transformed_train$TARGET, RF_pred_train)
 
 RF_Kappa <- RF_train_results$overall["Kappa"]
 
 
 # Support Vector Machine (SVM)
 
-SVM <- train(Attrition ~ .,
+ANN_final <- train(TARGET ~., 
+                   
+                   data = transformed_train,
+                   
+                   method = "nnet",
+                   
+                   trControl = fitControl_final,
+                   
+                   verbose = FALSE,
+                   
+                   metric = "ROC",
+                   
+                   tuneGrid = data.frame(size = 15,
+                                         
+                                         decay = 0
+                   ),
+                   
+                   importance = "impurity"
+)
+
+
+SVM <- train(TARGET ~ .,
              
              data = attrition_train, 
              
@@ -788,18 +816,18 @@ SVM <- train(Attrition ~ .,
 
 
 
-SVM_pred_train <- predict.train(SVM, newdata = attrition_train %>% select(-Attrition))
+ANN_pred_train <- predict.train(ANN, newdata = transformed_train %>% select(-TARGET))
 
-SVM_train_results <- confusionMatrix(attrition_train$Attrition, SVM_pred_train)
+ANN_train_results <- confusionMatrix(transformed_train$TARGET, ANN_pred_train)
 
-SVM_Kappa <- SVM_train_results$overall["Kappa"]
+ANN_Kappa <- ANN_train_results$overall["Kappa"]
 
 
 # Extreme Gradient Boosting Machine (XGBoost)
 
-XGB <- train(Attrition ~ .,
+XGB <- train(TARGET ~ .,
              
-             data = attrition_train, 
+             data = transformed_train, 
              
              method = "xgbTree",
              
@@ -826,9 +854,9 @@ XGB <- train(Attrition ~ .,
              importance = TRUE)
 
 
-XGB_pred_train <- predict(XGB, newdata = attrition_train)
+XGB_pred_train <- predict(XGB, newdata = transformed_train)
 
-XGB_train_results <- confusionMatrix(attrition_train$Attrition, XGB_pred_train)
+XGB_train_results <- confusionMatrix(transformed_train$TARGET, XGB_pred_train)
 
 XGB_Kappa <- XGB_train_results$overall["Kappa"]
 
@@ -837,18 +865,18 @@ XGB_Kappa <- XGB_train_results$overall["Kappa"]
 
 # Weights 
 
-Weights <- c((RF_Kappa)^2/sum((RF_Kappa)^2 + (SVM_Kappa)^2 + (XGB_Kappa)^2),
+Weights <- c((RF_Kappa)^2/sum((RF_Kappa)^2 + (ANN_Kappa)^2 + (XGB_Kappa)^2),
              
-             (SVM_Kappa)^2/sum((RF_Kappa)^2 + (SVM_Kappa)^2 + (XGB_Kappa)^2),
+             (ANN_Kappa)^2/sum((RF_Kappa)^2 + (ANN_Kappa)^2 + (XGB_Kappa)^2),
              
-             (XGB_Kappa)^2/sum((RF_Kappa)^2 + (SVM_Kappa)^2 + (XGB_Kappa)^2))
+             (XGB_Kappa)^2/sum((RF_Kappa)^2 + (ANN_Kappa)^2 + (XGB_Kappa)^2))
 
 
 super_learner <- function(M1, M2, M3, W) {
   
   weighted_average <- t(W*t(cbind(M1, M2, M3))) %>% apply(1, sum)
   
-  final_prediction <- ifelse(weighted_average > 0.5, "Yes", "No") %>% factor(levels = c("Yes", "No"))
+  final_prediction <- ifelse(weighted_average > 0.5, "p", "n") %>% factor(levels = c("p", "n"))
   
   return(final_prediction)
   
@@ -857,15 +885,15 @@ super_learner <- function(M1, M2, M3, W) {
 
 # Making predictions
 
-RF_prediction <- predict(RF, newdata = attrition_test, type = "prob")[, "Yes"]
+RF_prediction <- predict(RF, newdata = transformed_test, type = "prob")[, "p"]
 
-SVM_prediction <- predict.train(SVM, newdata = attrition_test %>% select(-Attrition), type = "prob")[, "Yes"]
+ANN_prediction <- predict.train(ANN, newdata = transformed_test %>% select(-TARGET), type = "prob")[, "p"]
 
-XGB_prediction <- predict(XGB, newdata = attrition_test, type = "prob")[, "Yes"]
+XGB_prediction <- predict(XGB, newdata = transformed_test, type = "prob")[, "p"]
 
-SP_prediction <- super_learner(RF_prediction, SVM_prediction, XGB_prediction, Weights)
+SP_prediction <- super_learner(RF_prediction, ANN_prediction, XGB_prediction, Weights)
 
-SP_results <- confusionMatrix(attrition_test$Attrition, SP_prediction)
+SP_results <- confusionMatrix(transformed_test$TARGET, SP_prediction)
 
 
 ## Interpretable ML
