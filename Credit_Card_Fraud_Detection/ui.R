@@ -69,12 +69,31 @@ ui <- fluidPage(
                )
              )
     ),
-    
+    tabPanel("Data Preprocessing", icon = icon("edit"),
+             sidebarLayout(
+               sidebarPanel(
+                 # Text Input for NA Conversion
+                 textInput("na_text", "Handle Sentinel Value ", value = ""),
+                 helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time."),
+                 actionButton("submit_na", "Convert to NA"),
+               ),
+               mainPanel(
+                 textOutput("na_message"),
+                 dataTableOutput("data_preview2")
+               )
+             )
+    ),
     tabPanel("Model Exploration", icon = icon("sliders"),
              titlePanel("Construct Model"),
              mainPanel(
                helpText("STAT 3106: Applied Machine Learning - Final Project ......")
              )
-    )
+    ),
+    tabPanel("Model Evaluation", icon = icon("sliders"),
+             titlePanel("Construct Model"),
+             mainPanel(
+               helpText("STAT 3106: Applied Machine Learning - Final Project ......")
+             )
+    ),
   )
 )
