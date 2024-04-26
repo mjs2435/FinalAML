@@ -13,7 +13,7 @@ num_nas = sort(colSums(is.na(df2)), decreasing = TRUE)
 
 zp =  nearZeroVar(df2, saveMetrics = TRUE)
 
-# col_nearz = c("FLAG_DOCUMENT_2", "FLAG_DOCUMENT_3", FLAG_DOCUzpMENT_15", "FLAG_DOCUMENT_16", "FLAG_DOCUMENT_17")
+# col_nearz = c("FLAG_DOCUMENT_2", "FLAG_DOCUMENT_3", FLAG_DOCUMENT_15", "FLAG_DOCUMENT_16", "FLAG_DOCUMENT_17")
 # df3 = select(df2, -c("FLAG_DOCUMENT_17"))
 df3 = df2[,!zp$nzv]
 # nearZeroVar(df3)

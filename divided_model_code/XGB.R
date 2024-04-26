@@ -55,11 +55,8 @@ grid <- expand.grid(nrounds = c(300, 400, 500, 600),
 
 
 
-b = balance_df(df8, final_row = 10000)
-sp = split_df(b)
-tr = b[sp,]
-ts = b[-sp,]
-
+tr = oversample_train(transformed_train)
+ts = transformed_test
 
 XGB_all = train_XGB(tr, grid)
 

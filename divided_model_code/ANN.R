@@ -66,12 +66,16 @@ final_ANN_mod <- function(train, test, grid_best){
 grid <- expand.grid(size = c(2, 5, 10),
                     decay = c(0, 0.1, 0.05, 0.01))  
 
-b = balance_df(df8, final_row = 10000)
-sp = split_df(b)
-tr = b[sp,]
-ts = b[-sp,]
+b = balance_df(rbind(transformed_train, transformed_test), final_row = 10000)
+b$TARGET = as.factor(b$TARGET)
+bpca = do_pca(b)
+sp = split_df(bpca)
+tr = bpca[sp,]
+ts = bpca[-sp,]
 
 
+tr = trans_target(tr)
+ts = trans_target(ts)
 
 ANN_tr = train_ANN(tr, grid)
 

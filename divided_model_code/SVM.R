@@ -17,6 +17,7 @@ train_SVM <- function(train, test, grid_lin, grid_poly, grid_rbf){
                        trControl = resample,
                        verbose = FALSE,
                        tuneGrid = grid_lin,
+                       minstep = 0.00001,
                        metric = "ROC")
 
 

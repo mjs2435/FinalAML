@@ -15,7 +15,7 @@ library(yardstick)
 library(randomForest)
 
 library(vip)   # first install the "vip" package you haven't done it before
-
+library(imbalance)
 # Random Forest Training and Evaluation
 
 
@@ -68,6 +68,49 @@ balance_df <- function(df_new, final_row = -1){
 split_df <- function(df, prop = .7){
   return(sample(nrow(df), nrow(df) * prop))
 }
+oversample_train<- function(transformed_train){
+  tot_pos = sum(transformed_train$TARGET == 'p')
+  tot_neg = sum(transformed_train$TARGET == 'n')
+  return(rbind(rwo(data.frame(transformed_train), tot_neg - tot_pos, "TARGET"), transformed_train))
+}
+
+
+# d = oversample_train(transformed_train)
+
+
+# preds = predict(RF, newdata=ts, type='prob')
+# act_pos_preds = preds[ts$TARGET == 'p']
+# act_neg_preds = preds[ts$TARGET == 'n']
+
+# hist(act_pos_preds)
+# hist(act_neg_preds)
+
+
+# oversample_tr <- function(df, pos = 'p', neg = 'n'){
+#   tot_pos = sum(df$TARGET == 'p')
+#   tot_neg = sum(df$TARGET == 'n')
+#   
+#   
+#   
+#   max_class = c(pos, neg)[ifelse(tot_pos < tot_neg, 1, 2)] # probably neg
+#   min_class = c(pos, neg)[ifelse(tot_pos > tot_neg, 1, 2)] # probably pos
+#   
+#   max_df = df[df$TARGET == max_class,]
+#   min_df = df[df$TARGET == min_class,]
+#   
+#   sampled_df = min_df[sample(1:nrow(min_df), max(tot_pos, tot_neg), replace = TRUE),]
+#   
+#   
+#   # for(x in s){
+#   #   sampled_df = rbind(min_df[x,], sampled_df)
+#   #   # print(x)
+#   # }
+#   
+#   
+#   return(rbind(max_df, sampled_df))
+# }
+
+# t1 = oversample_tr(transformed_train)
 
 do_pca <- function(df, targ_name = "TARGET", num_comp = 10){
   

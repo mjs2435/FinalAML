@@ -2,7 +2,7 @@
 
 # Base Learners
 
-final_stacked_mod <- function(train, test){
+final_stacked_mod <- function(train, test, wt_metric = "Kappa"){
   set.seed(1)
   fitControl_final <- trainControl(method = "none", classProbs = TRUE)
   # Random Forest (RF)
@@ -19,7 +19,7 @@ final_stacked_mod <- function(train, test){
               importance = "impurity")
   RF_pred_train <- predict(RF, newdata = train)
   RF_train_results <- confusionMatrix(train$TARGET, RF_pred_train)
-  RF_Kappa <- RF_train_results$overall["Kappa"]
+  RF_Kappa <- RF_train_results$overall[wt_metric]
   # ANN
   ANN <- train(TARGET ~ .,
                data = train, 
@@ -31,7 +31,7 @@ final_stacked_mod <- function(train, test){
                importance = TRUE)
   ANN_pred_train <- predict.train(ANN, newdata = train %>% select(-TARGET))
   ANN_train_results <- confusionMatrix(train$TARGET, ANN_pred_train)
-  ANN_Kappa <- ANN_train_results$overall["Kappa"]
+  ANN_Kappa <- ANN_train_results$overall[wt_metric]
   # Extreme Gradient Boosting Machine (XGBoost)
   XGB <- train(TARGET ~ .,
                data = train, 
@@ -49,7 +49,7 @@ final_stacked_mod <- function(train, test){
                importance = TRUE)
   XGB_pred_train <- predict(XGB, newdata = train)
   XGB_train_results <- confusionMatrix(train$TARGET, XGB_pred_train)
-  XGB_Kappa <- XGB_train_results$overall["Kappa"]
+  XGB_Kappa <- XGB_train_results$overall[wt_metric]
   Weights <- c((RF_Kappa)^2/sum((RF_Kappa)^2 + (ANN_Kappa)^2 + (XGB_Kappa)^2),
                (ANN_Kappa)^2/sum((RF_Kappa)^2 + (ANN_Kappa)^2 + (XGB_Kappa)^2),
                (XGB_Kappa)^2/sum((RF_Kappa)^2 + (ANN_Kappa)^2 + (XGB_Kappa)^2))
@@ -62,16 +62,17 @@ final_stacked_mod <- function(train, test){
   return(SP_results)
   
 }
-
-b = balance_df(df8, final_row = 10000)
-sp = split_df(b)
-tr = b[sp,]
-ts = b[-sp,]
-mod = final_stacked_mod(tr, ts)
+d_bind = rbind(transformed_train, transformed_test)
+d_all = d_bind[sample(nrow(d_bind), 1000),]
 
 
+sp = split_df(d_all)
+# b = balance_df(df8, final_row = 10000)
+tr = oversample_train(d_all[sp,])
+ts = d_all[-sp,]
 
 
+mod = final_stacked_mod(transformed_train, transformed_test, wt_metric = "Kappa")
 
 
 
