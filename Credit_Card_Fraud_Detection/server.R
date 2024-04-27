@@ -127,6 +127,66 @@ server <- function(input, output, session) {
     })
   })
   
+  observeEvent(input$submit_pre, {
+    data <- reactive_dataset()
+    # Initialize messages for imputation and feature dropping
+    impute_message <- ""
+    drop_message <- ""
+    
+    # Determine which imputation method is selected and set a corresponding message
+    if (input$impute_method == "none") {
+      impute_message <- "No imputation will be applied to the dataset."
+    } else if (input$impute_method == "mean") {
+      impute_message <- "Applying Mean imputation to the dataset..."
+    } else if (input$impute_method == "median") {
+      impute_message <- "Applying Median imputation to the dataset..."
+    } else if (input$impute_method == "mode") {
+      impute_message <- "Applying Mode imputation to the dataset..."
+    } else if (input$impute_method == "knn") {
+      impute_message <- "Applying KNN imputation to the dataset..."
+    } else if (input$impute_method == "drop_na") {
+      impute_message <- "Dropping all observations with missing values from the dataset..."
+    }
+    
+    # Render the imputation method message
+    output$impute_message <- renderText({ impute_message })
+    
+    # Check if dropping features with high missing values is enabled
+    if (input$drop_features) {
+      drop_message <- "Dropping features with high missing values from the dataset..."
+      output$drop_message <- renderText({ drop_message })
+    }
+    
+    # Display the selected percentage of training data
+    split_message <- sprintf("Selected training data percentage: %d%%", input$data_split)
+    output$data_split_message <- renderText({ split_message })
+    # Update the reactive dataset with changes
+    reactive_dataset(data)
+  })
+  
+  
+  observeEvent(input$submit_pre, {
+    data <- reactive_dataset()
+    
+    # Handle KNN imputation if checkbox is checked
+    if (input$knn_impute) {
+      knn_message <- sprintf("Applying Knn imputation to the dataset...")
+      output$knn_message <- renderText({ knn_message })
+    }
+    
+    # Drop features with high missing values if checkbox is checked
+    if (input$drop_features) {
+      drop_message <- sprintf("Dropping  to the dataset...")
+      output$drop_message <- renderText({ drop_message })
+    }
+    
+    # Adjust training data percentage based on slider value
+    #training_percentage <- input$data_split / 100
+    
+    # Update the reactive dataset with changes
+    #reactive_dataset(data)
+  })
+  
   
   
 }# end of server

@@ -12,9 +12,18 @@ ui <- fluidPage(
     theme = shinytheme("flatly"),
     
     tabPanel("Overview", icon = icon("info-circle"),
-             titlePanel("Overview: User Instructions"),
+             titlePanel("Welcome to the Machine Learning Model Explorer"),
              mainPanel(
-               helpText("STAT 3106: Applied Machine Learning - Final Project ......")
+               h4("App Overview"),
+               p("This comprehensive tool is designed to assist students and researchers in analyzing and visualizing machine learning datasets. It offers capabilities ranging from data uploading and preprocessing to exploratory data analysis."),
+               h5("Key Features:"),
+               tags$ul(
+                 tags$li("Upload Data: Securely import your datasets directly into the app. You can select from pre-loaded datasets like 'Credit Card Fraud Detection' for quick access or upload your own data in CSV format."),
+                 tags$li("Data Exploration: Utilize various interactive visualizations to understand data distributions, correlations, and patterns. Tools such as scatterplots, histograms, and numeric summaries are available."),
+                 tags$li("Data Preprocessing: Prepare your data for machine learning models by handling missing values, encoding categorical data, and splitting datasets into training and testing subsets."),
+                 tags$li("Each tab is equipped with specific instructions and options to guide you through the process of machine learning data management.")
+               ),
+               p("Start by selecting a tab and following the prompts to load and process your data.")
              )
     ),
     
@@ -75,14 +84,39 @@ ui <- fluidPage(
                  # Text Input for NA Conversion
                  textInput("na_text", "Handle Sentinel Value ", value = ""),
                  helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time."),
-                 actionButton("submit_na", "Convert to NA"),
+                 actionButton("submit_na", "Convert"),
+                 
+                 # Selection Input for Imputation Method
+                 selectInput("impute_method", "Select Imputation Method",
+                             choices = c("None" = "none",
+                                         "Mean Imputation" = "mean",
+                                         "Median Imputation" = "median",
+                                         "Mode Imputation" = "mode",
+                                         "KNN Imputation" = "knn",
+                                         "Drop Observations with NAs" = "drop_na")),
+                 helpText("Choose a method to handle missing data in the dataset."),
+                 
+                 # Checkbox for Dropping Features with High Missing Values
+                 checkboxInput("drop_features", "Drop Features with High Missing Values", value = FALSE),
+                 helpText("TODO: change this into a slider to control the threshold"),
+                 
+                 # Slider for Training Data Percentage
+                 sliderInput("data_split", "Percentage of Training Data", 
+                             min = 50, max = 90, value = 70, step = 5, post = "%"),
+                 actionButton("submit_pre", "Apply")
                ),
                mainPanel(
                  textOutput("na_message"),
-                 dataTableOutput("data_preview2")
+                 textOutput("impute_message"), # Updated output ID
+                 textOutput("drop_message"),
+                 dataTableOutput("data_preview2"),
+                 dataTableOutput("data_preview_train"),
+                 dataTableOutput("data_preview_test")
                )
              )
-    ),
+    )
+    
+    ,
     tabPanel("Model Exploration", icon = icon("sliders"),
              titlePanel("Construct Model"),
              mainPanel(
@@ -97,3 +131,4 @@ ui <- fluidPage(
     ),
   )
 )
+#
