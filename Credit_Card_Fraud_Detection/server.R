@@ -8,6 +8,7 @@ library(shinycssloaders)
 library(ggExtra)
 library(data.table)
 library(ggplot2)
+library(DT)
 
 
 data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
@@ -45,7 +46,7 @@ server <- function(input, output, session) {
   })
   
   #Render data pre_view
-  output$data_preview <- renderDataTable({
+  output$data_preview <- DT::renderDT({
     datatable(
       File(),
       options = list(

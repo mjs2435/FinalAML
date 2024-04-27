@@ -25,24 +25,34 @@ ui <- fluidPage(
                ),
                p("Start by selecting a tab and following the prompts to load and process your data.")
              )
-    ),
+    ),# end of Overview
     
     tabPanel("Upload Data", icon = icon("folder-open"),
              titlePanel("Upload Data"),
              sidebarLayout(
                sidebarPanel(
-                 selectInput("dataset", "Dataset:", choices = c("Credit Card Fraud Detection", "Upload your own file")),
+                 selectInput("dataset", "Dataset:", choices = c("Credit Card Fraud", "Upload your own file")),
                  conditionalPanel(
                    condition = "input.dataset == 'Upload your own file'",
                    fileInput("file", "Select your files:", accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
-                 )
+                 ),
+                 helpText("This page allows you to upload data. You have 2 options for uploading data:",
+                          tags$br(),tags$br(),
+                          "1.Use the default dataset provided on the website.", 
+                          tags$br(),
+                          "  No file upload or action is necessary for this option.", 
+                          tags$br(),tags$br(),
+                          "2.Upload a dataset from your desktop.", 
+                          tags$br(),
+                          "Please ensure your file meets the following requirements:", 
+                          tags$br(),
+                          "File format: CSV File(.csv) or Text File (.txt)")
                ),
                mainPanel(
                  dataTableOutput("data_preview")
-                 
                )
              )
-    ),
+    ),# end of Upload Data
     
     tabPanel("Data Exploration",icon = icon("chart-line"),
              titlePanel("Visualization"),
