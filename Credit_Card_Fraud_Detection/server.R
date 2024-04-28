@@ -286,8 +286,38 @@ server <- function(input, output, session) {
   })
   
   
-
+  #--------------------------- Model Exploration ---------------------------
+  # Dynamic UI for resampling parameters
+  output$resample_params <- renderUI({
+    switch(input$resample_method,
+           "Cross-validation" = numericInput("fold", "Number of Folds", min = 2, max = 10, value = 5),
+           "Repeated CV" = tagList(
+             numericInput("fold", "Number of Folds", min = 2, max = 10, value = 5),
+             numericInput("repeats", "Number of Repeats", min = 1, max = 10, value = 1)
+           ),
+           "Bootstrap" = numericInput("n_boot", "Number of Bootstrap Replicates", min = 10, max = 1000, value = 100),
+           "Time Series Split" = numericInput("n_splits", "Number of Splits", min = 2, max = 20, value = 5)
+    )
+  })
   
+  # Dynamic UI for tuning parameters using selectizeInput for multiple values
+  output$tuning_params <- renderUI({
+    switch(input$model_type,
+           "XGBoost" = tagList(
+             selectizeInput("max_depth", "Max Depth", choices = NULL, options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("subsample", "Subsample", choices = NULL, options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("gamma", "Gamma", choices = NULL, options = list(create = TRUE), multiple = TRUE)
+           ),
+           "Random Forest" = tagList(
+             selectizeInput("mtry", "Number of Variables (mtry)", choices = NULL, options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("ntree", "Number of Trees", choices = NULL, options = list(create = TRUE), multiple = TRUE)
+           ),
+           "SVM" = tagList(
+             selectizeInput("cost", "Cost (C)", choices = NULL, options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("gamma", "Gamma", choices = NULL, options = list(create = TRUE), multiple = TRUE)
+           )
+    )
+  })
   
   
 }# end of server

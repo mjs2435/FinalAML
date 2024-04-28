@@ -145,20 +145,46 @@ ui <- fluidPage(
                  dataTableOutput("data_preview_test")
                )
              )
-    )
-    
-    ,
+    ),
     tabPanel("Model Exploration", icon = icon("sliders"),
-             titlePanel("Construct Model"),
-             mainPanel(
-               helpText("STAT 3106: Applied Machine Learning - Final Project ......")
+             titlePanel("Model Exploration"),
+             sidebarLayout(
+               sidebarPanel(
+                 # Section header for Resampling Methods
+                 h3("Resampling Methods", style = "color: #337ab7;"),
+                 
+                 # Dropdown for selecting the resampling method with a default set to Repeated CV
+                 selectInput("resample_method", "Choose Resampling Method",
+                             choices = c("Cross-validation", "Bootstrap", "Time Series Split", "Repeated CV"),
+                             selected = "Repeated CV"),
+                 
+                 # UI elements that appear based on resample_method choice
+                 uiOutput("resample_params"),
+                 
+                 hr(), # Horizontal line to visually separate sections
+                 
+                 # Section header for Hyperparameter Tuning
+                 h3("Hyperparameter Tuning", style = "color: #337ab7;"),
+                 
+                 # Dropdown for selecting the model tuning method with a default set to XGBoost
+                 selectInput("model_type", "Choose Model for Tuning",
+                             choices = c("XGBoost", "Random Forest", "SVM"),
+                             selected = "XGBoost"),
+                 
+                 # UI elements that appear based on model_type choice
+                 uiOutput("tuning_params")
+               ),
+               mainPanel(
+                 # Displaying outputs and additional information
+                 tabsetPanel(
+                   tabPanel("Resampling Output", textOutput("resampling_output")),
+                   tabPanel("Tuning Output", textOutput("tuning_output"))
+                 )
+               )
              )
     ),
     tabPanel("Model Evaluation", icon = icon("sliders"),
-             titlePanel("Construct Model"),
-             mainPanel(
-               helpText("STAT 3106: Applied Machine Learning - Final Project ......")
-             )
+             
     ),
     selected = "Data Preprocessing"
   )
