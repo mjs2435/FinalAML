@@ -295,7 +295,7 @@ server <- function(input, output, session) {
              numericInput("fold", "Number of Folds", min = 2, max = 10, value = 5),
              numericInput("repeats", "Number of Repeats", min = 1, max = 10, value = 1)
            ),
-           "Bootstrap" = numericInput("n_boot", "Number of Bootstrap Replicates", min = 10, max = 1000, value = 100),
+           "Bootstrap" = numericInput("n_boot", "Number of Bootstrap Replicates", min = 10, max = 1000, value = 50),
            "Time Series Split" = numericInput("n_splits", "Number of Splits", min = 2, max = 20, value = 5)
     )
   })

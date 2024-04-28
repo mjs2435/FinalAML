@@ -146,8 +146,8 @@ ui <- fluidPage(
                )
              )
     ),
-    tabPanel("Model Exploration", icon = icon("sliders"),
-             titlePanel("Model Exploration"),
+    tabPanel("Training", icon = icon("sliders"),
+             titlePanel("Training"),
              sidebarLayout(
                sidebarPanel(
                  # Section header for Resampling Methods
@@ -186,7 +186,7 @@ ui <- fluidPage(
     tabPanel("Model Evaluation", icon = icon("sliders"),
              
     ),
-    selected = "Data Preprocessing"
+    selected = "Upload Data"
   )
 )
 #
