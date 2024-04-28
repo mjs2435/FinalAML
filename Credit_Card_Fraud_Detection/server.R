@@ -14,6 +14,13 @@ library(recipes)
 
 
 data_initial <- read.csv("data/testing.csv", header = TRUE)
+
+data_train <- reactiveVal()
+data_test <- reactiveVal()
+
+transformed_train <- reactiveVal()
+transformed_test <- reactiveVal()
+
 server <- function(input, output, session) {
   
   #--------------------------- Upload Data ---------------------------
@@ -46,6 +53,7 @@ server <- function(input, output, session) {
     updateSelectInput(session, "response", choices = names(File()))
     updateSelectInput(session, "explanatory", choices = names(File()))
     updateSelectInput(session, "var", choices = names(File()))
+    updateSelectInput(session, "target", choices = names(File()))
   })
   
   # Render scatterplot
@@ -175,54 +183,110 @@ server <- function(input, output, session) {
       )
     })
   })
-  observeEvent(input$submit_pre, {
-    # Initialize messages for imputation 
-    impute_message <- ""
-    # Check if any columns have NA values to determine the necessity of imputation
-    if (sum(is.na(data)) == 0) {
-      impute_message <- "No NA values found to impute."
-    } else {
-      # Create a recipe for the data
-      rec <- recipe(~., data = data)%>%
-        step_string2factor(all_nominal(), -all_outcomes())
-      
-      # Conditionally add steps based on the imputation method selected
-      if (input$impute_method == "none") {
-        impute_message <- "No imputation will be applied to the dataset."
-      } else if (input$impute_method == "mean") {
-        rec <- rec %>% step_impute_mean(all_predictors())
-        impute_message <- "Applying Mean imputation to the dataset..."
-      } else if (input$impute_method == "median") {
-        rec <- rec %>% step_impute_median(all_predictors())
-        impute_message <- "Applying Median imputation to the dataset..."
-      } else if (input$impute_method == "mode") {
-        rec <- rec %>% step_impute_mode(all_predictors())
-        impute_message <- "Applying Mode imputation to the dataset..."
-      } else if (input$impute_method == "knn") {
-        rec <- rec %>% step_impute_knn(all_predictors())
-        impute_message <- "Applying KNN imputation to the dataset..."
-      } else if (input$impute_method == "drop_na") {
-        data <- na.omit(data)
-        impute_message <- "Dropping all observations with missing values from the dataset..."
-      }
-
-      rec <- prep(rec, training = data)
-      data <- bake(rec, new_data = NULL)  # Apply the transformations
-      
+  
+  observeEvent(input$submit_split, {
+    data <- reactive_dataset()  # Fetch the current dataset
+    
+    # Ensure that there is data to split
+    if (is.null(data)) {
+      return()
     }
-
-    # Render the imputation method message
-    output$impute_message <- renderText({ impute_message })
     
+    # Use rsample to split the data
+    split <- initial_split(data, prop = input$data_split / 100, strata = input$target)  # Split based on slider input
     
-    
+    # Assign training and test sets
+    data_train(training(split))
+    data_test(testing(split))
     
     # Display the selected percentage of training data
     split_message <- sprintf("Selected training data percentage: %d%%", input$data_split)
     output$data_split_message <- renderText({ split_message })
-    
-
   })
+  
+  # Render the training data table
+  output$data_preview_train <- renderDT({
+    datatable(
+      data_train(),  # Use the reactive getter to access the data
+      options = list(
+        scrollY = "200px",   # Sets the height of the scrollable area
+        scrollX = TRUE,
+        paging = TRUE        # Enables pagination
+      )
+    )
+  })
+  
+  # Render the test data table
+  output$data_preview_test <- renderDT({
+    datatable(
+      data_test(),  # Use the reactive getter to access the data
+      options = list(
+        scrollY = "200px",   # Sets the height of the scrollable area
+        scrollX = TRUE,
+        paging = TRUE        # Enables pagination
+      )
+    )
+  })
+  
+  
+  observeEvent(input$submit_pre, {
+    train_data <- data_train()
+    test_data <- data_test()
+    
+    # Start with checking data availability
+    if (is.null(train_data) || is.null(test_data)) {
+      showNotification("Training or test data is not available. Make sure you split the data before you apply preprocessing step.", type = "error")
+      return()
+    }
+    
+    # Initialize the message with basic information
+    pre_message <- "Preprocessing steps applied: "
+    
+    # Initialize the recipe with the training data
+    blueprint <- recipe(~., data = train_data) %>%
+      step_string2factor(all_nominal(), -all_outcomes())
+    pre_message <- paste(pre_message, "Convert all nominal predictors to factors,")
+    
+    if (input$remove_zero_var) {
+      blueprint <- blueprint %>% step_nzv(all_predictors())
+      pre_message <- paste(pre_message, "Remove near zero variance predictors,")
+    }
+    
+    # Imputation steps and messages
+    blueprint <- switch(input$impute_method,
+                        "mean" = { blueprint %>% step_impute_mean(all_numeric_predictors()); pre_message <- paste(pre_message, "Mean imputation for numeric predictors,"); blueprint },
+                        "median" = { blueprint %>% step_impute_median(all_numeric_predictors()); pre_message <- paste(pre_message, "Median imputation for numeric predictors,"); blueprint },
+                        "mode" = { blueprint %>% step_impute_mode(all_nominal_predictors()); pre_message <- paste(pre_message, "Mode imputation for nominal predictors,"); blueprint },
+                        "knn" = { blueprint %>% step_impute_knn(all_predictors()); pre_message <- paste(pre_message, "KNN imputation for all predictors,"); blueprint },
+                        "drop_na" = { train_data <<- na.omit(train_data); test_data <<- na.omit(test_data); pre_message <- paste(pre_message, "Drop all rows with NAs,"); blueprint },
+                        blueprint # Default case to handle 'none' or unexpected input
+    )
+    
+    if (input$normalize_data) {
+      blueprint <- blueprint %>% step_normalize(all_numeric_predictors())
+      pre_message <- paste(pre_message, "Normalize all numeric predictors,")
+    }
+    
+    if (input$standardize_data) {
+      blueprint <- blueprint %>% step_center(all_numeric_predictors()) %>%
+        step_scale(all_numeric_predictors())
+      pre_message <- paste(pre_message, "Center and scale all numeric predictors,")
+    }
+    
+    # Finalize and apply the preprocessing blueprint
+    blueprint_prep <- prep(blueprint, training = train_data)
+    transformed_train(bake(blueprint_prep, new_data = train_data))
+    transformed_test(bake(blueprint_prep, new_data = test_data))
+    
+    # Removing trailing comma and space
+    pre_message <- sub(",\\s*$", "", pre_message)
+    
+    # Output the preprocessing message
+    output$pre_message <- renderText({ pre_message })
+  })
+  
+  
+
   
   
   

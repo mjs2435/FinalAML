@@ -107,23 +107,23 @@ ui <- fluidPage(
                              min = 30, max = 100, value = 30, step = 10, 
                              post = "%"),
                  actionButton("submit_drop", "Drop"),
+                 # Slider for Training Data Percentage
+                 sliderInput("data_split", "Training Data (%)", 
+                             min = 50, max = 90, value = 70, step = 5, post = "%"),
+                 selectInput("target", "Target (Y)", choices = NULL),
+                 actionButton("submit_split", "Split"),
                  
                  # Selection Input for Imputation Method
                  selectInput("impute_method", "Select Imputation Method",
-                             choices = c("None" = "none",
+                             choices = c(
                                          "Mean Imputation" = "mean",
                                          "Median Imputation" = "median",
                                          "Mode Imputation" = "mode",
                                          "KNN Imputation" = "knn",
-                                         "Drop Observations with NAs" = "drop_na")),
+                                         "Drop Observations with NAs" = "drop_na",
+                                         "None" = "none")),
                  
-                 helpText("Choose an imputation method to handle missing data in the dataset."),
-                 
-                 
-                 
-                 # Slider for Training Data Percentage
-                 sliderInput("data_split", "Training Data (%)", 
-                             min = 50, max = 90, value = 70, step = 5, post = "%"),
+                 #helpText("Choose an imputation method to handle missing data in the dataset."),
                  
                  # Checkboxes for Additional Preprocessing Options
                  #checkboxInput("remove_outliers", "Remove Outliers", value = FALSE),
@@ -136,10 +136,12 @@ ui <- fluidPage(
                ),
                mainPanel(
                  textOutput("na_message"),
-                 textOutput("impute_message"),
+                 textOutput("pre_message"),
                  textOutput("drop_message"),
                  dataTableOutput("data_preview2"),
+                 tags$h3("Training Data", style = "font-weight: bold"),
                  dataTableOutput("data_preview_train"),
+                 tags$h3("Testing Data", style = "font-weight: bold"),
                  dataTableOutput("data_preview_test")
                )
              )
