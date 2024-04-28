@@ -40,7 +40,7 @@ ui <- fluidPage(
                           tags$br(),tags$br(),
                           "1.Use the default dataset provided on the website.", 
                           tags$br(),
-                          "  No file upload or action is necessary for this option.", 
+                          "No file upload or action is necessary for this option.", 
                           tags$br(),tags$br(),
                           "2.Upload a dataset from your desktop.", 
                           tags$br(),
@@ -54,6 +54,8 @@ ui <- fluidPage(
              )
     ),# end of Upload Data
     
+    #TODO: make a better design for this tab
+    #1. different visulization method for catagorical data
     tabPanel("Data Exploration",icon = icon("chart-line"),
              titlePanel("Visualization"),
              sidebarLayout(
@@ -88,13 +90,23 @@ ui <- fluidPage(
                )
              )
     ),
+    
+    #cur
     tabPanel("Data Preprocessing", icon = icon("edit"),
              sidebarLayout(
                sidebarPanel(
+                 
                  # Text Input for NA Conversion
                  textInput("na_text", "Handle Sentinel Value ", value = ""),
-                 helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time."),
+                 helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time.Note:Empty entries will be converted to NA directly during model building."),
                  actionButton("submit_na", "Convert"),
+                 
+                 # Checkbox for Dropping Features with High Missing Values
+                 sliderInput("drop_features", 
+                             "Threshold for Dropping Features (%)", 
+                             min = 30, max = 100, value = 30, step = 10, 
+                             post = "%"),
+                 actionButton("submit_drop", "Drop"),
                  
                  # Selection Input for Imputation Method
                  selectInput("impute_method", "Select Imputation Method",
@@ -104,20 +116,27 @@ ui <- fluidPage(
                                          "Mode Imputation" = "mode",
                                          "KNN Imputation" = "knn",
                                          "Drop Observations with NAs" = "drop_na")),
-                 helpText("Choose a method to handle missing data in the dataset."),
                  
-                 # Checkbox for Dropping Features with High Missing Values
-                 checkboxInput("drop_features", "Drop Features with High Missing Values", value = FALSE),
-                 helpText("TODO: change this into a slider to control the threshold"),
+                 helpText("Choose an imputation method to handle missing data in the dataset."),
+                 
+                 
                  
                  # Slider for Training Data Percentage
-                 sliderInput("data_split", "Percentage of Training Data", 
+                 sliderInput("data_split", "Training Data (%)", 
                              min = 50, max = 90, value = 70, step = 5, post = "%"),
-                 actionButton("submit_pre", "Apply")
+                 
+                 # Checkboxes for Additional Preprocessing Options
+                 #checkboxInput("remove_outliers", "Remove Outliers", value = FALSE),
+                 checkboxInput("normalize_data", "Normalize Variables", value = FALSE),
+                 checkboxInput("standardize_data", "Standardize Variables", value = FALSE),
+                 checkboxInput("remove_zero_var", "Remove Near Zero Variance Variables", value = FALSE),
+                 actionButton("submit_pre", "Apply"),
+                 
+                 
                ),
                mainPanel(
                  textOutput("na_message"),
-                 textOutput("impute_message"), # Updated output ID
+                 textOutput("impute_message"),
                  textOutput("drop_message"),
                  dataTableOutput("data_preview2"),
                  dataTableOutput("data_preview_train"),
@@ -139,6 +158,7 @@ ui <- fluidPage(
                helpText("STAT 3106: Applied Machine Learning - Final Project ......")
              )
     ),
+    selected = "Data Preprocessing"
   )
 )
 #

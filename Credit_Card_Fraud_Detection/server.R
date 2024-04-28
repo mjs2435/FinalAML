@@ -8,13 +8,15 @@ library(shinycssloaders)
 library(ggExtra)
 library(data.table)
 library(ggplot2)
-library(DT)
+library(dplyr)  # For data manipulation
+library(recipes)
 
 
-data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
 
+data_initial <- read.csv("data/testing.csv", header = TRUE)
 server <- function(input, output, session) {
   
+  #--------------------------- Upload Data ---------------------------
   # Reactive expression to handle file upload or selection
   File <- reactive({
     if (input$dataset == 'Upload your own file') {
@@ -27,6 +29,18 @@ server <- function(input, output, session) {
     }
   })
   
+  #Render data pre_view
+  output$data_preview <- DT::renderDT({
+    datatable(
+      File(),
+      options = list(
+        scrollY = TRUE,   # Sets the height of the scrollable area
+        scrollX = TRUE,
+        paging = TRUE       # Disables pagination, adjust as needed
+      )
+    )
+  })
+  #--------------------------- Data Exploration ---------------------------
   # Update response and explanatory variable choices
   observeEvent(File(), {
     updateSelectInput(session, "response", choices = names(File()))
@@ -45,19 +59,6 @@ server <- function(input, output, session) {
     p
   })
   
-  #Render data pre_view
-  output$data_preview <- DT::renderDT({
-    datatable(
-      File(),
-      options = list(
-        scrollY = TRUE,   # Sets the height of the scrollable area
-        scrollX = TRUE,
-        paging = TRUE       # Disables pagination, adjust as needed
-      )
-    )
-  })
-  
-  
   # Histogram plot
   plot2 <- eventReactive(input$click, {
     ggplot(data = File(), aes_string(x = input$var)) +
@@ -70,18 +71,33 @@ server <- function(input, output, session) {
   output$plot2 <- renderPlot({
     plot2()
   })
-   
+  
+
+  
+  #--------------------------- Data Preprocessing ---------------------------
+  
   reactive_dataset <- reactiveVal(data_initial)
   
+  # TODO: this is still rendering the original file 
+  
+  output$data_preview2 <- DT::renderDT({
+    datatable(
+      File(),
+      options = list(
+        scrollY = TRUE,   # Sets the height of the scrollable area
+        scrollX = TRUE,
+        paging = TRUE       # Disables pagination, adjust as needed
+      )
+    )
+  })
+  
   observeEvent(input$submit_na, {
-    req(input$na_text) # unable to handle empty string at this moment
+    req(input$na_text) # placeholder:unable to handle empty string at this moment
     value_to_convert <- input$na_text  # Use the text input directly
-    
-    # Access the current dataset
-    data <- reactive_dataset()
-    
+    data <- reactive_dataset()# Access the current dataset
     converted_count <- 0
-    #---not working 
+    
+    # TODO:---not working
     if (value_to_convert == "EMPTY") {
       # Convert all empty or blank entries to NA
       for (col_name in names(data)) {
@@ -90,12 +106,13 @@ server <- function(input, output, session) {
         converted_count <- converted_count + sum(is_blank)
       }
       if (converted_count > 0) {
-        na_message <- sprintf("Converted all empty entries to NA across all columns.\n Total: %d entries modified.", converted_count)
+        na_message <- sprintf("Converted all empty entries to NA across all columns. Total: %d entries modified.", converted_count)
       } else {
         na_message <- "There are no empty entries in the dataset."
       }
     } else {
     #---not working
+      
       # Convert specific value to NA
       for (col_name in names(data)) {
         matching_indices <- which(data[[col_name]] == value_to_convert)
@@ -111,14 +128,12 @@ server <- function(input, output, session) {
     
     # Update the reactive dataset with changes
     reactive_dataset(data)
-    
     # Send the message to the UI
     output$na_message <- renderText({ na_message })
-    
     # Update the data preview
-    output$data_preview2 <- renderDataTable({
+    output$data_preview2 <- DT::renderDT({
       datatable(
-        File(),
+        data,
         options = list(
           scrollY = TRUE,   # Sets the height of the scrollable area
           scrollX = TRUE,
@@ -128,64 +143,85 @@ server <- function(input, output, session) {
     })
   })
   
-  observeEvent(input$submit_pre, {
+  observeEvent(input$submit_drop, {
     data <- reactive_dataset()
-    # Initialize messages for imputation and feature dropping
-    impute_message <- ""
+    
     drop_message <- ""
     
-    # Determine which imputation method is selected and set a corresponding message
-    if (input$impute_method == "none") {
-      impute_message <- "No imputation will be applied to the dataset."
-    } else if (input$impute_method == "mean") {
-      impute_message <- "Applying Mean imputation to the dataset..."
-    } else if (input$impute_method == "median") {
-      impute_message <- "Applying Median imputation to the dataset..."
-    } else if (input$impute_method == "mode") {
-      impute_message <- "Applying Mode imputation to the dataset..."
-    } else if (input$impute_method == "knn") {
-      impute_message <- "Applying KNN imputation to the dataset..."
-    } else if (input$impute_method == "drop_na") {
-      impute_message <- "Dropping all observations with missing values from the dataset..."
+    # Drop features based on the threshold set by the slider
+    threshold <- input$drop_features / 100  # Convert percentage to proportion
+    if (threshold > 0) {
+      initial_features <- ncol(data)
+      data <- data[, colSums(is.na(data)) / nrow(data) < threshold]
+      dropped_features <- initial_features - ncol(data)
+      drop_message <- sprintf("Dropped %d features with more than %d%% missing values.", dropped_features, input$drop_features)
+    } else {
+      drop_message <- "No feature dropping threshold set."
     }
     
     # Render the imputation method message
+    output$drop_message <- renderText({ drop_message })
+    # Update the reactive dataset with changes
+    reactive_dataset(data)
+    # Update the data preview
+    output$data_preview2 <- DT::renderDT({
+      datatable(
+        data,
+        options = list(
+          scrollY = TRUE,   # Sets the height of the scrollable area
+          scrollX = TRUE,
+          paging = TRUE       # Disables pagination, adjust as needed
+        )
+      )
+    })
+  })
+  observeEvent(input$submit_pre, {
+    # Initialize messages for imputation 
+    impute_message <- ""
+    # Check if any columns have NA values to determine the necessity of imputation
+    if (sum(is.na(data)) == 0) {
+      impute_message <- "No NA values found to impute."
+    } else {
+      # Create a recipe for the data
+      rec <- recipe(~., data = data)%>%
+        step_string2factor(all_nominal(), -all_outcomes())
+      
+      # Conditionally add steps based on the imputation method selected
+      if (input$impute_method == "none") {
+        impute_message <- "No imputation will be applied to the dataset."
+      } else if (input$impute_method == "mean") {
+        rec <- rec %>% step_impute_mean(all_predictors())
+        impute_message <- "Applying Mean imputation to the dataset..."
+      } else if (input$impute_method == "median") {
+        rec <- rec %>% step_impute_median(all_predictors())
+        impute_message <- "Applying Median imputation to the dataset..."
+      } else if (input$impute_method == "mode") {
+        rec <- rec %>% step_impute_mode(all_predictors())
+        impute_message <- "Applying Mode imputation to the dataset..."
+      } else if (input$impute_method == "knn") {
+        rec <- rec %>% step_impute_knn(all_predictors())
+        impute_message <- "Applying KNN imputation to the dataset..."
+      } else if (input$impute_method == "drop_na") {
+        data <- na.omit(data)
+        impute_message <- "Dropping all observations with missing values from the dataset..."
+      }
+
+      rec <- prep(rec, training = data)
+      data <- bake(rec, new_data = NULL)  # Apply the transformations
+      
+    }
+
+    # Render the imputation method message
     output$impute_message <- renderText({ impute_message })
     
-    # Check if dropping features with high missing values is enabled
-    if (input$drop_features) {
-      drop_message <- "Dropping features with high missing values from the dataset..."
-      output$drop_message <- renderText({ drop_message })
-    }
+    
+    
     
     # Display the selected percentage of training data
     split_message <- sprintf("Selected training data percentage: %d%%", input$data_split)
     output$data_split_message <- renderText({ split_message })
-    # Update the reactive dataset with changes
-    reactive_dataset(data)
-  })
-  
-  
-  observeEvent(input$submit_pre, {
-    data <- reactive_dataset()
     
-    # Handle KNN imputation if checkbox is checked
-    if (input$knn_impute) {
-      knn_message <- sprintf("Applying Knn imputation to the dataset...")
-      output$knn_message <- renderText({ knn_message })
-    }
-    
-    # Drop features with high missing values if checkbox is checked
-    if (input$drop_features) {
-      drop_message <- sprintf("Dropping  to the dataset...")
-      output$drop_message <- renderText({ drop_message })
-    }
-    
-    # Adjust training data percentage based on slider value
-    #training_percentage <- input$data_split / 100
-    
-    # Update the reactive dataset with changes
-    #reactive_dataset(data)
+
   })
   
   
