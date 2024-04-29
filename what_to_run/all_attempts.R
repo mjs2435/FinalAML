@@ -9,16 +9,14 @@ ts = transformed_test
 hyper_grid <- expand.grid(mtry = c(5, 7, 9), 
                           splitrule = c("gini", "extratrees", "hellinger"), # 
                           min.node.size = c(5, 7, 9)) # 
-
 mod = train_rf(tr, hyper_grid)
+
 best_grid = data.frame(mtry = 9,
                        min.node.size = 13,
                        splitrule = "hellinger")
-
 mod_fin = final_RF_mod(tr, ts, best_grid)
 
 pred_train <- predict(mod_fin, newdata = tr)
-
 pred_test <- predict(mod_fin, newdata = ts)
 
 ############################# [2] #############################
@@ -35,11 +33,9 @@ mod = train_rf(tr, hyper_grid)
 best_grid = data.frame(mtry = 13,
                        min.node.size = 9,
                        splitrule = "hellinger")
-
 mod_fin = final_RF_mod(tr, ts, best_grid)
 
 pred_train <- predict(mod_fin, newdata = tr)
-
 pred_test <- predict(mod_fin, newdata = ts)
 
 ############################# [3] #############################
@@ -51,16 +47,14 @@ ts = b[-sp,]
 hyper_grid <- expand.grid(mtry = c(13, 15, 17, 20, 22, 25), 
                           splitrule = c("gini", "extratrees", "hellinger"), # 
                           min.node.size = c(5, 7, 9)) # 
-
 mod = train_rf(tr, hyper_grid)
+
 best_grid = data.frame(mtry = 25,
                        min.node.size = 9,
                        splitrule = "hellinger")
-
 mod_fin = final_RF_mod(tr, ts, best_grid)
 
 pred_train <- predict(mod_fin, newdata = tr)
-
 pred_test <- predict(mod_fin, newdata = ts)
 
 ############################# [4] #############################
@@ -73,16 +67,14 @@ ts = pc[-sp,]
 hyper_grid <- expand.grid(mtry = c(5,6,7,8,9), 
                           splitrule = c("gini", "extratrees", "hellinger"), 
                           min.node.size = c(5, 7, 9))
-
 mod = train_rf(tr, hyper_grid)
+
 best_grid = data.frame(mtry = 5,
                        min.node.size = 9,
                        splitrule = "extratrees")
-
 mod_fin = final_RF_mod(tr, ts, best_grid)
 
 pred_train <- predict(mod_fin, newdata = tr)
-
 pred_test <- predict(mod_fin, newdata = ts)
 
 ############################# [5] #############################
@@ -95,16 +87,14 @@ ts = pc[-sp,]
 hyper_grid <- expand.grid(mtry = c(2,3,4,5,6,7), 
                           splitrule = c("gini", "extratrees", "hellinger"), 
                           min.node.size = c(5, 7, 9))
-
 mod = train_rf(tr, hyper_grid)
+
 best_grid = data.frame(mtry = 7,
                        min.node.size = 9,
                        splitrule = "extratrees")
-
 mod_fin = final_RF_mod(tr, ts, best_grid)
 
 pred_train <- predict(mod_fin, newdata = tr)
-
 pred_test <- predict(mod_fin, newdata = ts)
 
 ############################# [6] #############################
@@ -114,16 +104,14 @@ ts = transformed_test
 hyper_grid <- expand.grid(mtry = c(2,3,4,5,6,7), 
                           splitrule = c("gini", "extratrees", "hellinger"), 
                           min.node.size = c(5, 7, 9))
-
 mod = train_rf(tr, hyper_grid)
+
 best_grid = data.frame(mtry = 2,
                        min.node.size = 5,
                        splitrule = "extratrees")
-
 mod_fin = final_RF_mod(tr, ts, best_grid)
 
 pred_train <- class_prob_pred(mod_fin, tr, new_prob = 0.15) # CHANGED
-
 pred_test <- class_prob_pred(mod_fin, ts)  # CHANGED
 
 ###############################################################
@@ -142,7 +130,6 @@ best_grid = data.frame(size = 5, decay = 0.1)
 mod_fin = final_ANN_mod(tr, ts, best_grid)
 
 pred_train <- predict(mod_fin, newdata = tr)
-
 pred_test <- predict(mod_fin, newdata = ts)
 
 ############################# [8] #############################
@@ -158,7 +145,6 @@ best_grid = data.frame(size = 5, decay = 0.1)
 mod_fin = final_ANN_mod(tr, ts, best_grid)
 
 pred_train <- predict(mod_fin, newdata = tr)
-
 pred_test <- predict(mod_fin, newdata = ts)
 
 ###############################################################

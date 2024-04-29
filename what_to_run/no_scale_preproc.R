@@ -6,7 +6,7 @@ library(tidyverse)
 library(yardstick)
 library(randomForest)
 
-df2 = read.csv("C:/Users/mjstr/Desktop/Git Repository Final Python Project/FinalAML/application_data.csv", na = c("NA", "", "XNA"))
+df2 = read.csv("application_data.csv", na = c("NA", "", "XNA"))
 
 
 num_nas = sort(colSums(is.na(df2)), decreasing = TRUE)

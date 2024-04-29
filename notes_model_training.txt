@@ -1,11 +1,16 @@
 ## HOW TO RUN ANY OF THE CODE ##
-1. Run get_main_data.R
-2. Run no_scale_preproc.R
-3. Run dep.R
-4. Run RF/Stacked/XGB/ANN in any order
+All code files are in what_to_run folder
+1. Update the work directory in get_main_data.R to where the application data is
+2. Run all of get_main_data.R (10 mins, Devin's code)
+3. Run all of no_scale_preproc.R (10 mins, my attempt to make his code faster)
+4. Run all of dep.R (instantaneous)
+5. Run "cells" of all_attempts.R between # comments in any order. Note that it is not recommended to run any train_rf, train_ANN, train_XGB as those can take a while. They should all work, though.
+
+Brackets (eg [5]) next to specifiations below - what part of all_attempts.R generates that model.
+
 #################################
 
-Brackets next to code - what part of all_attempts.R generates that value
+
 
 #################################
           Random Forest

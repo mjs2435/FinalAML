@@ -12,9 +12,13 @@ library(gplots)
 
 library(randomForest)
 
-## EDA ##
+#####################################################################################################################
+############################################### UPDATE SETWD TO WHERE CSV IS ########################################
+#####################################################################################################################
 
-cc_fraud = read.csv("C:/Users/mjstr/Desktop/Git Repository Final Python Project/FinalAML/application_data.csv", )
+
+setwd("C:/Users/mjstr/Desktop/Git Repository Final Python Project/FinalAML")
+cc_fraud = read.csv("application_data.csv", )
 
 summary(cc_fraud)
 
