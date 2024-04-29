@@ -1,0 +1,43 @@
+library(shiny)
+library(caret)
+library(rpart) # For Decision Tree
+library(randomForest) # For Random Forest
+library(e1071) # For SVM
+library(shinythemes)
+library(shinycssloaders)
+library(ggExtra)
+library(data.table)
+library(ggplot2)
+library(dplyr)  # For data manipulation
+library(recipes)
+library(future)
+library(shinycssloaders)
+library(rsample)
+library(tidymodels)
+library(tidyverse)
+
+setwd("/Users/auroraweng/Desktop/STAT3106 AML/FinalAML/")
+data <- read.csv("Credit_Card_Fraud_Detection/data/subset_application_data.csv", header = TRUE)
+set.seed(50)
+
+split <- initial_split(data, prop = 0.70, strata = "TARGET")   # 70%-30% split
+train_data <- training(split)
+test_data <- testing(split)
+train_data$TARGET <- factor(train_data$TARGET, levels = c("1", "0"))
+test_data$TARGET <- factor(test_data$TARGET, levels = c("1", "0"))
+
+blueprint <- recipe(~., data = train_data) %>%step_string2factor(all_nominal(), -all_outcomes())
+blueprint <-blueprint %>% step_nzv(all_predictors())
+blueprint <-blueprint %>% step_impute_knn(all_predictors())
+
+blueprint <-blueprint %>% step_normalize(all_numeric_predictors())
+
+blueprint <- blueprint %>% step_center(all_numeric_predictors()) %>%
+  step_scale(all_numeric_predictors())
+blueprint<- blueprint%>%step_dummy(all_nominal(), -all_outcomes())
+blueprint_prep <- prep(blueprint, training = train_data)
+
+transformed_train<-(bake(blueprint_prep, new_data = train_data))
+transformed_test<-(bake(blueprint_prep, new_data = test_data))
+
+trainControl(method = "repeatedcv", number = 3, repeats = 5,classProbs = TRUE, summaryFunction = twoClassSummary)

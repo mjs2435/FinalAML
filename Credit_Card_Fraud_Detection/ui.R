@@ -54,44 +54,44 @@ ui <- fluidPage(
              )
     ),# end of Upload Data
     
-    #TODO: make a better design for this tab
-    #1. different visulization method for catagorical data
-    tabPanel("Data Exploration",icon = icon("chart-line"),
-             titlePanel("Visualization"),
-             sidebarLayout(
-               sidebarPanel(
-                 conditionalPanel(
-                   condition = "input.tabSelected == 'Scatterplot'",
-                   selectInput("response", "Response Variable (Y)", choices = NULL), 
-                   selectInput("explanatory", "Explanatory Variable (X)", choices = NULL),
-                   sliderInput("shade", "Transparency Rate", min = 0, max = 1, value = 0.5, step = 0.1),
-                   checkboxInput("marginal", "Marginal Distributions", value = FALSE)
-                 ),
-                 conditionalPanel(
-                   condition = "input.tabSelected == 'Numeric Summary'",
-                   h4("Understanding Numeric Summary"),
-                   helpText("The numeric summary provides statistical measures such as mean, median, mode, and others for the selected response variable. Choose a response variable from the dropdown to view its statistics.")
-                 ),
-                 conditionalPanel(
-                   condition = "input.tabSelected == 'Histogram'",
-                   selectInput("var", "Variable", choices = NULL), 
-                   numericInput("bins", "Number of bins", min = 1, max = 50, step = 1, value = 10),
-                   radioButtons("color", "Color of bins:", choices = list("Blue" = "blue", "Red" = "red", "Green" = "green"), selected = "blue"),
-                   actionButton("click", "Submit")
-                 )
-               ),
-               mainPanel(
-                 tabsetPanel(id = "tabSelected",
-                             tabPanel("Scatterplot", plotOutput("plot1")),
-                             tabPanel("Histogram", plotOutput("plot2")),
-                             tabPanel("Numeric Summary", dataTableOutput("result1"))
-                             
-                 )
-               )
-             )
-    ),
+    # #TODO: make a better design for this tab
+    # #1. different visulization method for catagorical data
+    # tabPanel("Data Exploration",icon = icon("chart-line"),
+    #          titlePanel("Visualization"),
+    #          sidebarLayout(
+    #            sidebarPanel(
+    #              conditionalPanel(
+    #                condition = "input.tabSelected == 'Scatterplot'",
+    #                selectInput("response", "Response Variable (Y)", choices = NULL), 
+    #                selectInput("explanatory", "Explanatory Variable (X)", choices = NULL),
+    #                sliderInput("shade", "Transparency Rate", min = 0, max = 1, value = 0.5, step = 0.1),
+    #                checkboxInput("marginal", "Marginal Distributions", value = FALSE)
+    #              ),
+    #              conditionalPanel(
+    #                condition = "input.tabSelected == 'Numeric Summary'",
+    #                h4("Understanding Numeric Summary"),
+    #                helpText("The numeric summary provides statistical measures such as mean, median, mode, and others for the selected response variable. Choose a response variable from the dropdown to view its statistics.")
+    #              ),
+    #              conditionalPanel(
+    #                condition = "input.tabSelected == 'Histogram'",
+    #                selectInput("var", "Variable", choices = NULL), 
+    #                numericInput("bins", "Number of bins", min = 1, max = 50, step = 1, value = 10),
+    #                radioButtons("color", "Color of bins:", choices = list("Blue" = "blue", "Red" = "red", "Green" = "green"), selected = "blue"),
+    #                actionButton("click", "Submit")
+    #              )
+    #            ),
+    #            mainPanel(
+    #              tabsetPanel(id = "tabSelected",
+    #                          tabPanel("Scatterplot", plotOutput("plot1")),
+    #                          tabPanel("Histogram", plotOutput("plot2")),
+    #                          tabPanel("Numeric Summary", dataTableOutput("result1"))
+    #                          
+    #              )
+    #            )
+    #          )
+    # ),
     
-    #cur
+    
     tabPanel("Data Preprocessing", icon = icon("edit"),
              sidebarLayout(
                sidebarPanel(
@@ -146,39 +146,32 @@ ui <- fluidPage(
                )
              )
     ),
+    
+    #cur
     tabPanel("Training", icon = icon("sliders"),
              titlePanel("Training"),
              sidebarLayout(
                sidebarPanel(
-                 # Section header for Resampling Methods
                  h3("Resampling Methods", style = "color: #337ab7;"),
-                 
-                 # Dropdown for selecting the resampling method with a default set to Repeated CV
                  selectInput("resample_method", "Choose Resampling Method",
-                             choices = c("Cross-validation", "Bootstrap", "Time Series Split", "Repeated CV"),
+                             choices = c("Cross-validation", "Bootstrap", "Repeated CV"),
                              selected = "Repeated CV"),
-                 
-                 # UI elements that appear based on resample_method choice
                  uiOutput("resample_params"),
                  
-                 hr(), # Horizontal line to visually separate sections
+                 hr(),  # Horizontal line to visually separate sections
                  
-                 # Section header for Hyperparameter Tuning
                  h3("Hyperparameter Tuning", style = "color: #337ab7;"),
-                 
-                 # Dropdown for selecting the model tuning method with a default set to XGBoost
                  selectInput("model_type", "Choose Model for Tuning",
-                             choices = c("XGBoost", "Random Forest", "SVM"),
+                             choices = c("Random Forest", "Support Vector Machine", "XGBoost", "Artificial Neural Networks"),
                              selected = "XGBoost"),
-                 
-                 # UI elements that appear based on model_type choice
-                 uiOutput("tuning_params")
+                 uiOutput("tuning_params"),
+                 actionButton("train_model", "Start Training", icon = icon("play"))
                ),
                mainPanel(
-                 # Displaying outputs and additional information
                  tabsetPanel(
-                   tabPanel("Resampling Output", textOutput("resampling_output")),
-                   tabPanel("Tuning Output", textOutput("tuning_output"))
+                   #tabPanel("Resampling Output", textOutput("resampling_output")),
+                   #tabPanel("Tuning Output", textOutput("tuning_output")),
+                   tabPanel("Training result", dataTableOutput("training_result"))
                  )
                )
              )
@@ -186,7 +179,7 @@ ui <- fluidPage(
     tabPanel("Model Evaluation", icon = icon("sliders"),
              
     ),
-    selected = "Upload Data"
+    selected = "Training"
   )
 )
 #

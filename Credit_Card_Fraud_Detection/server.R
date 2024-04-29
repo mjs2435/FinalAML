@@ -10,10 +10,14 @@ library(data.table)
 library(ggplot2)
 library(dplyr)  # For data manipulation
 library(recipes)
+library(future)
+library(shinycssloaders)
+library(rsample)
+library(DT)
+library(tidymodels)
+library(tidyverse)
 
-
-
-data_initial <- read.csv("data/testing.csv", header = TRUE)
+data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
 
 data_train <- reactiveVal()
 data_test <- reactiveVal()
@@ -22,7 +26,7 @@ transformed_train <- reactiveVal()
 transformed_test <- reactiveVal()
 
 server <- function(input, output, session) {
-  
+  plan(multisession)
   #--------------------------- Upload Data ---------------------------
   # Reactive expression to handle file upload or selection
   File <- reactive({
@@ -156,6 +160,10 @@ server <- function(input, output, session) {
     
     drop_message <- ""
     
+    # Drop rows where the target column has NA values
+    target_column <- "TARGET"  # replace 'target' with the name of your target column
+    data <- data[!is.na(data[[target_column]]), ]
+    
     # Drop features based on the threshold set by the slider
     threshold <- input$drop_features / 100  # Convert percentage to proportion
     if (threshold > 0) {
@@ -228,10 +236,14 @@ server <- function(input, output, session) {
     )
   })
   
-  
   observeEvent(input$submit_pre, {
     train_data <- data_train()
     test_data <- data_test()
+    
+    train_data$TARGET <- factor(train_data$TARGET, levels = c("0", "1"),
+                       labels = c("Faud", "Non-Faud"))
+    test_data$TARGET <- factor(test_data$TARGET, levels = c("0", "1"),
+                                labels = c("Faud", "Non-Faud"))
     
     # Start with checking data availability
     if (is.null(train_data) || is.null(test_data)) {
@@ -254,10 +266,10 @@ server <- function(input, output, session) {
     
     # Imputation steps and messages
     blueprint <- switch(input$impute_method,
-                        "mean" = { blueprint %>% step_impute_mean(all_numeric_predictors()); pre_message <- paste(pre_message, "Mean imputation for numeric predictors,"); blueprint },
-                        "median" = { blueprint %>% step_impute_median(all_numeric_predictors()); pre_message <- paste(pre_message, "Median imputation for numeric predictors,"); blueprint },
-                        "mode" = { blueprint %>% step_impute_mode(all_nominal_predictors()); pre_message <- paste(pre_message, "Mode imputation for nominal predictors,"); blueprint },
-                        "knn" = { blueprint %>% step_impute_knn(all_predictors()); pre_message <- paste(pre_message, "KNN imputation for all predictors,"); blueprint },
+                        "mean" = { blueprint <-blueprint %>% step_impute_mean(all_numeric_predictors()); pre_message <- paste(pre_message, "Mean imputation for numeric predictors,"); blueprint },
+                        "median" = { blueprint <-blueprint %>% step_impute_median(all_numeric_predictors()); pre_message <- paste(pre_message, "Median imputation for numeric predictors,"); blueprint },
+                        "mode" = { blueprint <-blueprint %>% step_impute_mode(all_nominal_predictors()); pre_message <- paste(pre_message, "Mode imputation for nominal predictors,"); blueprint },
+                        "knn" = { blueprint <-blueprint %>% step_impute_knn(all_predictors()); pre_message <- paste(pre_message, "KNN imputation for all predictors,"); blueprint },
                         "drop_na" = { train_data <<- na.omit(train_data); test_data <<- na.omit(test_data); pre_message <- paste(pre_message, "Drop all rows with NAs,"); blueprint },
                         blueprint # Default case to handle 'none' or unexpected input
     )
@@ -274,9 +286,12 @@ server <- function(input, output, session) {
     }
     
     # Finalize and apply the preprocessing blueprint
+    blueprint<- blueprint%>%step_dummy(all_nominal(), -all_outcomes())
+    
     blueprint_prep <- prep(blueprint, training = train_data)
-    transformed_train(bake(blueprint_prep, new_data = train_data))
-    transformed_test(bake(blueprint_prep, new_data = test_data))
+    
+    transformed_train<-(bake(blueprint_prep, new_data = train_data))
+    transformed_test<-(bake(blueprint_prep, new_data = test_data))
     
     # Removing trailing comma and space
     pre_message <- sub(",\\s*$", "", pre_message)
@@ -287,7 +302,6 @@ server <- function(input, output, session) {
   
   
   #--------------------------- Model Exploration ---------------------------
-  # Dynamic UI for resampling parameters
   output$resample_params <- renderUI({
     switch(input$resample_method,
            "Cross-validation" = numericInput("fold", "Number of Folds", min = 2, max = 10, value = 5),
@@ -295,29 +309,132 @@ server <- function(input, output, session) {
              numericInput("fold", "Number of Folds", min = 2, max = 10, value = 5),
              numericInput("repeats", "Number of Repeats", min = 1, max = 10, value = 1)
            ),
-           "Bootstrap" = numericInput("n_boot", "Number of Bootstrap Replicates", min = 10, max = 1000, value = 50),
-           "Time Series Split" = numericInput("n_splits", "Number of Splits", min = 2, max = 20, value = 5)
+           "Bootstrap" = numericInput("n_boot", "Number of Bootstrap Replicates", min = 10, max = 1000, value = 100)
+  
     )
   })
   
-  # Dynamic UI for tuning parameters using selectizeInput for multiple values
   output$tuning_params <- renderUI({
     switch(input$model_type,
-           "XGBoost" = tagList(
-             selectizeInput("max_depth", "Max Depth", choices = NULL, options = list(create = TRUE), multiple = TRUE),
-             selectizeInput("subsample", "Subsample", choices = NULL, options = list(create = TRUE), multiple = TRUE),
-             selectizeInput("gamma", "Gamma", choices = NULL, options = list(create = TRUE), multiple = TRUE)
-           ),
            "Random Forest" = tagList(
-             selectizeInput("mtry", "Number of Variables (mtry)", choices = NULL, options = list(create = TRUE), multiple = TRUE),
-             selectizeInput("ntree", "Number of Trees", choices = NULL, options = list(create = TRUE), multiple = TRUE)
+             selectizeInput("mtry", "mtry (Number of Variables)", choices = as.character(1:20), options = list(create = TRUE), multiple = TRUE),
+             selectInput("splitrule", "Splitting Rule", choices = c("Gini" = "gini", "ExtraTrees" = "extratrees", "Hellinger" = "hellinger")),
+             selectizeInput("min_node_size", "Minimum Node Size", choices = as.character(1:10), options = list(create = TRUE), multiple = TRUE),
            ),
-           "SVM" = tagList(
-             selectizeInput("cost", "Cost (C)", choices = NULL, options = list(create = TRUE), multiple = TRUE),
-             selectizeInput("gamma", "Gamma", choices = NULL, options = list(create = TRUE), multiple = TRUE)
+           "Support Vector Machine" = tagList(
+             selectInput("kernel_type", "Kernel Type", choices = c("Linear" = "linear", "Polynomial" = "polynomial", "RBF" = "rbf")),
+             
+             conditionalPanel(
+               condition = "input.kernel_type === 'linear'",
+               selectizeInput("C_linear", "Regularization Parameter (C)", choices = as.character(seq(0.1, 10, by = 0.1)), options = list(create = TRUE), multiple = TRUE)
+             ),
+             
+             conditionalPanel(
+               condition = "input.kernel_type === 'polynomial'",
+               tagList(
+                 selectizeInput("C_poly", "Regularization Parameter (C)", choices = as.character(seq(0.1, 10, by = 0.1)), options = list(create = TRUE), multiple = TRUE),
+                 selectizeInput("degree", "Degree", choices = as.character(1:5), options = list(create = TRUE), multiple = TRUE),
+                 selectizeInput("scale_poly", "Scale", choices = as.character(seq(0.1, 2, by = 0.1)), options = list(create = TRUE), multiple = TRUE)
+               )
+             ),
+             
+             conditionalPanel(
+               condition = "input.kernel_type === 'rbf'",
+               tagList(
+                 selectizeInput("C_rbf", "Regularization Parameter (C)", choices = as.character(seq(0.1, 10, by = 0.1)), options = list(create = TRUE), multiple = TRUE),
+                 selectizeInput("sigma", "Sigma", choices = as.character(seq(0.1, 2, by = 0.1)), options = list(create = TRUE), multiple = TRUE)
+               )
+             )
+           )
+           ,
+           "XGBoost" = tagList(
+             selectizeInput("nrounds", "Number of Boosting Rounds", choices = as.character(1:100), options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("max_depth", "Max Depth", choices = as.character(1:15), options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("eta", "Learning Rate", choices = as.character(seq(0.01, 0.3, by = 0.01)), options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("min_child_weight", "Min Child Weight", choices = as.character(1:10), options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("subsample", "Subsample Ratio of Training Instances", choices = as.character(seq(0.1, 1, by = 0.1)), options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("gamma", "Minimum Loss Reduction", choices = as.character(seq(0, 5, by = 0.1)), options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("colsample_bytree", "Subsample Ratio of Columns", choices = as.character(seq(0.1, 1, by = 0.1)), options = list(create = TRUE), multiple = TRUE)
+           ),
+           "Artificial Neural Networks" = tagList(
+             selectizeInput("size", "Number of Units in Hidden Layers", choices = as.character(1:100), options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("decay", "Weight Decay to Prevent Overfitting", choices = as.character(seq(0.0001, 0.01, by = 0.0001)), options = list(create = TRUE), multiple = TRUE)
            )
     )
   })
   
+  observeEvent(input$train_model, {
+    transformed_train = transformed_train()
+    
+    # Define training control conditionally
+    trainingControl <- switch(input$resample_method,
+                              "Cross-validation" = trainControl(method = "cv", number = input$fold,classProbs = TRUE, summaryFunction = twoClassSummary),
+                              "Repeated CV" = trainControl(method = "repeatedcv", number = input$fold, repeats = input$repeats,classProbs = TRUE, summaryFunction = twoClassSummary),
+                              "Bootstrap" = trainControl(method = "boot", number = input$n_boot,classProbs = TRUE, summaryFunction = twoClassSummary),
+                              trainControl(method = "none")  # Default fallback
+    )
+    
+    # Define the model method and tuning parameters dynamically
+    modelMethod <- switch(input$model_type,
+                          "Random Forest" = "rf",
+                          "Support Vector Machine" = "svmRadial",
+                          "XGBoost" = "xgbTree",
+                          "Artificial Neural Networks" = "nnet"
+    )
   
+    # Get tuning parameters dynamically based on user input
+    tuningParams <- switch(input$model_type,
+                           "Random Forest" = list(
+                             mtry = as.numeric(input$mtry),
+                             splitrule = input$splitrule,
+                             min_node_size = as.numeric(input$min_node_size)
+                           ),
+                           "Support Vector Machine" = switch(input$kernel_type,
+                                                             "linear" = list(C = as.numeric(input$C_linear)),
+                                                             "polynomial" = list(
+                                                               C = as.numeric(input$C_poly),
+                                                               degree = as.numeric(input$degree),
+                                                               scale = as.numeric(input$scale_poly)
+                                                             ),
+                                                             "rbf" = list(
+                                                               C = as.numeric(input$C_rbf),
+                                                               sigma = as.numeric(input$sigma)
+                                                             )
+                           ),
+                           "XGBoost" = list(
+                             nrounds = as.numeric(input$nrounds),
+                             max_depth = as.numeric(input$max_depth),
+                             eta = as.numeric(input$eta),
+                             min_child_weight = as.numeric(input$min_child_weight),
+                             subsample = as.numeric(input$subsample),
+                             gamma = as.numeric(input$gamma),
+                             colsample_bytree = as.numeric(input$colsample_bytree)
+                           ),
+                           "Artificial Neural Networks" = list(
+                             size = as.numeric(input$size),
+                             decay = as.numeric(input$decay)
+                           )
+    )
+    
+    
+    # Prepare and train the model
+    modelFit <- train(
+      Target ~ ., 
+      data = transformed_train, 
+      method = modelMethod, 
+      trControl = trainingControl,
+      tuneGrid = expand.grid(tuningParams),
+      metric = "ROC",
+      na.action = na.omit
+    )
+    
+    # Output the model's training results
+    output$training_result <- DT::renderDT({
+      datatable(data.frame(Predictions = predict(modelFit, newdata = transformed_train)))
+    })
+    
+  }, ignoreInit = TRUE)
+  
+  
+
 }# end of server
