@@ -4,7 +4,9 @@ All code files are in what_to_run folder
 2. Run all of get_main_data.R (10 mins, Devin's code)
 3. Run all of no_scale_preproc.R (10 mins, my attempt to make his code faster)
 4. Run all of dep.R (instantaneous)
-5. Run "cells" of all_attempts.R between # comments in any order. Note that it is not recommended to run any train_rf, train_ANN, train_XGB as those can take a while. They should all work, though.
+5. Run "cells" of all_attempts.R between # comments in any order. 
+
+Note that it is not recommended to run any train_rf, train_ANN, train_XGB in all_attempts.R as those can take a while. They should all work, though.
 
 Brackets (eg [5]) next to specifiations below - what part of all_attempts.R generates that model.
 
