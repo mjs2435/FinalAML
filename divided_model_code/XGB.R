@@ -2,48 +2,7 @@
 
 # XGBoost Training and Evaluation
 
-train_XGB <- function(train, grid){
-  resample <- trainControl(method = "cv",
-                           number = 5,
-                           classProbs = TRUE,
-                           summaryFunction = twoClassSummary)
-  
-  xg_fit <- train(TARGET ~ .,
-                  data = train, 
-                  method = "xgbTree",
-                  trControl = resample,
-                  tuneGrid = grid,
-                  metric = "ROC")
 
-  
-  return(xg_fit)
-  
-}
-
-
-# Final Model
-final_XGB_mod <- function(train, test, best_grid){
-  fitControl_final <- trainControl(method = "none", classProbs = TRUE, summaryFunction = twoClassSummary)   # no resampling applies to the data
-  
-  
-  XG_final <- train(TARGET ~., 
-                    
-                    data = train,
-                    
-                    method = "xgbTree",
-                    
-                    trControl = fitControl_final,
-                    
-                    metric = "ROC",
-                    
-                    tuneGrid = best_grid
-  )
-  
-
-  
-  return(XG_final)
-
-}
 
 grid <- expand.grid(nrounds = c(300, 400, 500, 600),   
                           max_depth = c(1, 2, 4, 8, 16), 

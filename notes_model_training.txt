@@ -1,0 +1,208 @@
+## HOW TO RUN ANY OF THE CODE ##
+1. Run get_main_data.R
+2. Run no_scale_preproc.R
+3. Run dep.R
+4. Run RF/Stacked/XGB/ANN in any order
+#################################
+
+Brackets next to code - what part of all_attempts.R generates that value
+
+#################################
+          Random Forest
+#################################
+
+[1] Raw Dataset (Unbalanced Dataset in plots) - just run on transformed_train, transformed_test
+
+Params:
+Min_Node_Size - 5, 7, 9
+Splitting Ruke - Hellinger, Extratrees, Gini
+Predictor Number - 13, 15, 17, 20, 22, 25
+
+Best:
+Min_Node_Size - 9
+Splitting Rule - Hellinger
+Predictor Number - 17
+
+Results:
+Train = 99% accuracy, 100% spec, 86% sens
+Test = 99% accuracy, 99% spec, 0.1% sens
+
+
+
+[2] Balanced Dataset - run balance_df on rbind(transformed_train, transformed_test), do a split after
+
+Params:
+Min_Node_Size - 5, 7, 9
+Splitting Rule - Hellinger, Extratrees, Gini
+Predictor Number - 13, 15, 17, 20, 22, 25
+
+Best:
+Min_Node_Size - 9
+Splitting Rule - Hellinger
+Predictor Number - 13
+
+Results:
+Train = 99% accuracy, 99% spec, 99% sens
+Test = 66% accuracy, 66% spec, 62% sens
+
+[3] No Scaled Features - run balance_df on df8 from no_scale_preproc.R, balance, split to train and test
+
+Params:
+Min_Node_Size - 5, 7, 9
+Splitting Rule - Hellinger, Extratrees, Gini
+Predictor Number - 13, 15, 17, 20, 22, 25
+
+Best:
+Min_Node_Size - 9
+Splitting Rule - Hellinger
+Predictor Number - 25
+
+Results:
+Train = 99% accuracy, 99% spec, 100% sens
+Test = 66% accuracy, 64% spec, 66% sens
+
+
+[4] PCA Balanced 1 (PCA in plots) - run do_pca on both transformed_train and transformed_test, then balance
+
+Params:
+Min_Node_Size - 5, 7, 9
+Splitting Rule - Hellinger, Extratrees, Gini
+Predictor Number - 5,6,7,8,9
+
+Best:
+Min_Node_Size - 9
+Splitting Rule - Extratrees
+Predictor Number - 5
+
+Results:
+Train = 99% accuracy, 99% spec, 99% sens
+Test = 63% accuracy, 62% spec, 61% sens
+
+
+[5] PCA Balanced 2 (PCA Balanced in plots) - run do_pca, then balance by merging on both transformed_train and transformed_test
+
+Params:
+Min_Node_Size - 5, 7, 9
+Splitting Rule - Hellinger, Extratrees, Gini
+Predictor Number - 2,3,4,5,6,7
+
+Best:
+Min_Node_Size - 9
+Splitting Rule - Extratrees
+Predictor Number - 7
+
+Results:
+Train = 98% accuracy, 98% spec, 98% sens
+Test = 61% accuracy, 62% spec, 61% sens
+
+[6] Oversampling with Variable Probs (Oversampling in plots) - run oversampling on transformed train, include extra code for modifying the bar
+
+Params:
+Min_Node_Size - 5, 7, 9
+Splitting Rule - Hellinger, Extratrees, Gini
+Predictor Number - 2,3,4,5,6,7
+
+Best:
+Min_Node_Size - 5
+Splitting Rule - Extratrees
+Predictor Number - 2
+
+Results:
+Train = 99% accuracy, 99% spec, 100% sens
+Test = 79% accuracy, 84% spec, 39% sens
+
+#################################
+Artifical Neural Network (ANN)
+#################################
+
+
+[7] Larger Grid - run ANN on transformed_train and transformed_test
+
+
+Params:
+Hidden Units - 2, 5, 10, 15
+Weight Decay - 0, 0.01, 0.05, 0.1
+
+Best:
+Hidden Units - 5
+Weight Decay - 0.1
+
+Results:
+Train = 92% accuracy, 99% spec, 0.1% sens
+Test = 99% accuracy, 99% spec, 0.02% sens
+
+[8] Without Scaled Features - run ANN on df8, which has to be split first
+
+Params:
+Hidden Units - 5,6,7,8,9,10
+Weight Decay - 0, 0.01, 0.1
+
+Best:
+Hidden Units - 5
+Weight Decay - 0.1
+
+Results:
+Train = 92% accuracy, 100% spec, 0% sens
+Test = 92% accuracy, 100% spec, 0% sens
+
+#################################
+Extreme Gradient Boosting (XGB)
+#################################
+
+[9] Raw Data (Try 1/2 in Folder - try 1 is subsample = 0.4, try 2 is subsample = 0.6) - run on transformed_train and transformed_test
+
+Params:
+Max Tree Depth - 4, 10
+Number of Boosting Iterations - 100, 150, 200, 250, 300
+ETA - 0.05, 0.3
+min_child_weight - 5, 15
+subsample - 0.4, 0.6
+gamma - 0
+colsample_bytree - 1
+
+Best:
+Max Tree Depth - 4
+Number of Boosting Iterations - 300
+ETA - 0.05
+min_child_weight - 15
+subsample - 0.4
+gamma - 0
+colsample_bytree - 1
+
+Results:
+Train = 92% accuracy, 99% spec, 0.8% sens
+Test = 92% accuracy, 99% spec, 0.6% sens
+
+
+[10] With No Scaled Features - run on df8, split, balance
+
+Max Tree Depth - 4,8,12,16
+Number of Boosting Iterations - 300, 400, 500, 600
+ETA - 0.001, 0.005, 0.01, 0.05
+min_child_weight - 14,15,16,17
+subsample - 0.4
+gamma - 0
+colsample_bytree - 1
+
+Best:
+Max Tree Depth - 4
+Number of Boosting Iterations - 400
+ETA - 0.05
+min_child_weight - 14
+subsample - 0.4
+gamma - 0
+colsample_bytree - 1
+
+Results:
+Train = 79% accuracy, 79% spec, 79% sens
+Test = 65% accuracy, 64% spec, 65% sens
+
+#################################
+Super Learner (SP)
+#################################
+
+[11] On all data, balanced, transformed_train and transformed_test
+No tuning, used previous best models and a linear SVM with C = 0.01
+
+Results:
+Test = 66% accuracy, 66% spec, 66% sens

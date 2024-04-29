@@ -17,66 +17,7 @@
 
 
 
-## Resampling strategy
-train_rf <- function(train, grid){
-  resample <- trainControl(method = "cv", number = 5, classProbs = TRUE, summaryFunction = twoClassSummary)
-  
-  
 
-  
-  
-  ## Tuning Hyperparameters
-  
-  rf_fit <- train(TARGET ~ .,
-                  
-                  data = train, 
-                  
-                  method = "ranger", 
-                  
-                  trControl = resample, 
-                  
-                  tuneGrid = hyper_grid,
-                  
-                  metric = "ROC",
-                  
-                  num.trees = 50)
-  
-  
-  ggplot(rf_fit)
-  
-  plot(rf_fit, metric = "ROC", plotType = "level")
-  plot(rf_fit, metric = "Sens", plotType = "level")
-  plot(rf_fit, metric = "Spec", plotType = "level")
-  plot(rf_fit, metric = "ROCSD", plotType = "level")
-  
-  return(rf_fit)
-}
-
-final_RF_mod <- function(train, test, best_grid){
-  # Best ROC for this set = with mtry = 17, min.node.size = 9, splitrule = "hellinger"
-  
-  # Part 2 - Final Model
-  
-  fitControl_final <- trainControl(method = "none", classProbs = TRUE, summaryFunction = twoClassSummary)   # no resampling applies to the data
-  
-  
-  RF_final <- train(TARGET ~., 
-                    
-                    data = train,
-                    
-                    method = "ranger",
-                    
-                    trControl = fitControl_final,
-                    
-                    metric = "ROC",
-                    
-                    tuneGrid = best_grid,
-                    
-                    num.trees = 250)
-
-  return(RF_final)
-  
-}
 
 ## Grid of hyperparameter values
 
@@ -111,26 +52,21 @@ best_grid = data.frame(mtry = 7,
 
 mod_fin = final_RF_mod(tr, ts, best_grid)
 
-rf_pred_train <- predict(mod_fin, newdata=tr, type = 'prob')
 
-rf_pred_test <- predict(mod_fin, newdata = ts, type='prob')
 
+pred_tr = class_prob_pred(mod_fin, tr)
+pred_ts = class_prob_pred(mod_fin, ts)
 
 # confusionMatrix(data=rf_pred_train, reference=as.factor(tr$TARGET))
 
 # confusionMatrix(data=rf_pred_test, reference=as.factor(ts$TARGET))
 
-hist(rf_pred_test$p[ts$TARGET == 'p'], main = "Histogram of Probability for Test Set on Presences", xlab = "Probability")
-hist(rf_pred_test$n[ts$TARGET == 'n'], main = "Histogram of Probability for Test Set on Absences", xlab = "Probability")
+# hist(rf_pred_test$p[ts$TARGET == 'p'], main = "Histogram of Probability for Test Set on Presences", xlab = "Probability")
+# hist(rf_pred_test$n[ts$TARGET == 'n'], main = "Histogram of Probability for Test Set on Absences", xlab = "Probability")
 
+confusionMatrix(data = pred_tr, reference = as.factor(tr$TARGET))
+confusionMatrix(data = pred_ts, reference = as.factor(ts$TARGET))
 
-
-pp = ifelse(rf_pred_test$p > .138, 'p', 'n')
-
-pn = ifelse(rf_pred_train$p >.138, 'p', 'n')
-
-confusionMatrix(data = as.factor(pp), reference = as.factor(ts$TARGET))
-confusionMatrix(data = as.factor(pn), reference = as.factor(tr$TARGET))
 
 
 
