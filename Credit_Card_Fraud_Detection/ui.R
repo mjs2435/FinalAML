@@ -12,29 +12,50 @@ ui <- fluidPage(
     theme = shinytheme("flatly"),
     
     tabPanel("Overview", icon = icon("info-circle"),
-             titlePanel("Overview: User Instructions"),
+             titlePanel("Welcome to the Machine Learning Model Explorer"),
              mainPanel(
-               helpText("STAT 3106: Applied Machine Learning - Final Project ......")
+               h4("App Overview"),
+               p("This comprehensive tool is designed to assist students and researchers in analyzing and visualizing machine learning datasets. It offers capabilities ranging from data uploading and preprocessing to exploratory data analysis."),
+               h5("Key Features:"),
+               tags$ul(
+                 tags$li("Upload Data: Securely import your datasets directly into the app. You can select from pre-loaded datasets like 'Credit Card Fraud Detection' for quick access or upload your own data in CSV format."),
+                 tags$li("Data Exploration: Utilize various interactive visualizations to understand data distributions, correlations, and patterns. Tools such as scatterplots, histograms, and numeric summaries are available."),
+                 tags$li("Data Preprocessing: Prepare your data for machine learning models by handling missing values, encoding categorical data, and splitting datasets into training and testing subsets."),
+                 tags$li("Each tab is equipped with specific instructions and options to guide you through the process of machine learning data management.")
+               ),
+               p("Start by selecting a tab and following the prompts to load and process your data.")
              )
-    ),
+    ),# end of Overview
     
     tabPanel("Upload Data", icon = icon("folder-open"),
              titlePanel("Upload Data"),
              sidebarLayout(
                sidebarPanel(
-                 selectInput("dataset", "Dataset:", choices = c("Credit Card Fraud Detection", "Upload your own file")),
+                 selectInput("dataset", "Dataset:", choices = c("Credit Card Fraud", "Upload your own file")),
                  conditionalPanel(
                    condition = "input.dataset == 'Upload your own file'",
                    fileInput("file", "Select your files:", accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
-                 )
+                 ),
+                 helpText("This page allows you to upload data. You have 2 options for uploading data:",
+                          tags$br(),tags$br(),
+                          "1.Use the default dataset provided on the website.", 
+                          tags$br(),
+                          "No file upload or action is necessary for this option.", 
+                          tags$br(),tags$br(),
+                          "2.Upload a dataset from your desktop.", 
+                          tags$br(),
+                          "Please ensure your file meets the following requirements:", 
+                          tags$br(),
+                          "File format: CSV File(.csv) or Text File (.txt)")
                ),
                mainPanel(
                  dataTableOutput("data_preview")
-                 
                )
              )
-    ),
+    ),# end of Upload Data
     
+    #TODO: make a better design for this tab
+    #1. different visulization method for catagorical data
     tabPanel("Data Exploration",icon = icon("chart-line"),
              titlePanel("Visualization"),
              sidebarLayout(
@@ -69,31 +90,103 @@ ui <- fluidPage(
                )
              )
     ),
+    
+    #cur
     tabPanel("Data Preprocessing", icon = icon("edit"),
              sidebarLayout(
                sidebarPanel(
+                 
                  # Text Input for NA Conversion
                  textInput("na_text", "Handle Sentinel Value ", value = ""),
-                 helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time."),
-                 actionButton("submit_na", "Convert to NA"),
+                 helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time.Note:Empty entries will be converted to NA directly during model building."),
+                 actionButton("submit_na", "Convert"),
+                 
+                 # Checkbox for Dropping Features with High Missing Values
+                 sliderInput("drop_features", 
+                             "Threshold for Dropping Features (%)", 
+                             min = 30, max = 100, value = 30, step = 10, 
+                             post = "%"),
+                 actionButton("submit_drop", "Drop"),
+                 # Slider for Training Data Percentage
+                 sliderInput("data_split", "Training Data (%)", 
+                             min = 50, max = 90, value = 70, step = 5, post = "%"),
+                 selectInput("target", "Target (Y)", choices = NULL),
+                 actionButton("submit_split", "Split"),
+                 
+                 # Selection Input for Imputation Method
+                 selectInput("impute_method", "Select Imputation Method",
+                             choices = c(
+                                         "Mean Imputation" = "mean",
+                                         "Median Imputation" = "median",
+                                         "Mode Imputation" = "mode",
+                                         "KNN Imputation" = "knn",
+                                         "Drop Observations with NAs" = "drop_na",
+                                         "None" = "none")),
+                 
+                 #helpText("Choose an imputation method to handle missing data in the dataset."),
+                 
+                 # Checkboxes for Additional Preprocessing Options
+                 #checkboxInput("remove_outliers", "Remove Outliers", value = FALSE),
+                 checkboxInput("normalize_data", "Normalize Variables", value = FALSE),
+                 checkboxInput("standardize_data", "Standardize Variables", value = FALSE),
+                 checkboxInput("remove_zero_var", "Remove Near Zero Variance Variables", value = FALSE),
+                 actionButton("submit_pre", "Apply"),
+                 
+                 
                ),
                mainPanel(
                  textOutput("na_message"),
-                 dataTableOutput("data_preview2")
+                 textOutput("pre_message"),
+                 textOutput("drop_message"),
+                 dataTableOutput("data_preview2"),
+                 tags$h3("Training Data", style = "font-weight: bold"),
+                 dataTableOutput("data_preview_train"),
+                 tags$h3("Testing Data", style = "font-weight: bold"),
+                 dataTableOutput("data_preview_test")
                )
              )
     ),
-    tabPanel("Model Exploration", icon = icon("sliders"),
-             titlePanel("Construct Model"),
-             mainPanel(
-               helpText("STAT 3106: Applied Machine Learning - Final Project ......")
+    tabPanel("Training", icon = icon("sliders"),
+             titlePanel("Training"),
+             sidebarLayout(
+               sidebarPanel(
+                 # Section header for Resampling Methods
+                 h3("Resampling Methods", style = "color: #337ab7;"),
+                 
+                 # Dropdown for selecting the resampling method with a default set to Repeated CV
+                 selectInput("resample_method", "Choose Resampling Method",
+                             choices = c("Cross-validation", "Bootstrap", "Time Series Split", "Repeated CV"),
+                             selected = "Repeated CV"),
+                 
+                 # UI elements that appear based on resample_method choice
+                 uiOutput("resample_params"),
+                 
+                 hr(), # Horizontal line to visually separate sections
+                 
+                 # Section header for Hyperparameter Tuning
+                 h3("Hyperparameter Tuning", style = "color: #337ab7;"),
+                 
+                 # Dropdown for selecting the model tuning method with a default set to XGBoost
+                 selectInput("model_type", "Choose Model for Tuning",
+                             choices = c("XGBoost", "Random Forest", "SVM"),
+                             selected = "XGBoost"),
+                 
+                 # UI elements that appear based on model_type choice
+                 uiOutput("tuning_params")
+               ),
+               mainPanel(
+                 # Displaying outputs and additional information
+                 tabsetPanel(
+                   tabPanel("Resampling Output", textOutput("resampling_output")),
+                   tabPanel("Tuning Output", textOutput("tuning_output"))
+                 )
+               )
              )
     ),
     tabPanel("Model Evaluation", icon = icon("sliders"),
-             titlePanel("Construct Model"),
-             mainPanel(
-               helpText("STAT 3106: Applied Machine Learning - Final Project ......")
-             )
+             
     ),
+    selected = "Upload Data"
   )
 )
+#
