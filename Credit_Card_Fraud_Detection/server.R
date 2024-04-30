@@ -423,6 +423,7 @@ server <- function(input, output, session) {
       return()
     }
     
+    ######## Seting up input ########
     trainingControl <- switch(input$resample_method,
                           "Cross-validation" = trainControl(method = "cv", number = input$fold,classProbs = TRUE, summaryFunction = twoClassSummary),
                           "Repeated CV" = trainControl(method = "repeatedcv", number = input$fold, repeats = input$repeats,classProbs = TRUE, summaryFunction = twoClassSummary),
@@ -469,9 +470,14 @@ server <- function(input, output, session) {
                               gamma = as.numeric(input$gamma),
                               colsample_bytree = as.numeric(input$colsample_bytree)
                             ),
-                          "Artificial Neural Networks" = "nnet"
+                          "Artificial Neural Networks" = 
+                            expand.grid(
+                               size = as.numeric(input$size),
+                               decay = as.numeric(input$decay)
+                             )
     )
     
+    ######## Training ########
     if(input$model_type =="Random Forest"){
       modelFit <- train(
         TARGET ~ .,
@@ -482,15 +488,7 @@ server <- function(input, output, session) {
         metric = "ROC",
         num.trees = 50,#TODO: make this a input 
       )
-    }else if (input$model_type =="XGBoost") {
-      modelFit <-train(
-            TARGET ~ .,
-            data = transformed_train, 
-            method = modelMethod,
-            trControl = trainingControl,
-            tuneGrid = tuningParams,
-            metric = "ROC"
-      )
+      showNotification(paste("Training Complete."),type = "message",duration = NULL)
     }else if (input$model_type =="SVM"){
       modelFit <-train(
         TARGET ~ .,
@@ -501,50 +499,23 @@ server <- function(input, output, session) {
         tuneGrid = tuningParams,
         metric = "ROC"
       )
+      showNotification(paste("Training Complete."),type = "message",duration = NULL)
+    }else {
+      modelFit <-train(
+            TARGET ~ .,
+            data = transformed_train, 
+            method = modelMethod,
+            trControl = trainingControl,
+            tuneGrid = tuningParams,
+            metric = "ROC"
+      )
+      showNotification(paste("Training Complete."),type = "message",duration = NULL)
     }
-    
-    showNotification(paste("Training Complete."),type = "message",duration = NULL)
-    # # Define training control conditionally
 
-    # 
-    # # Define the model method and tuning parameters dynamically
-
-    # tuningParams <- switch(input$model_type,
-    #                        "Random Forest" = expand.grid(
-    #                          mtry = c(as.numeric(input$mtry)),
-    #                          splitrule =c(input$splitrule),
-    #                          min.node.size = c(as.numeric(input$min_node_size),
-    #                          
-    #                        ),
-    #                        "Support Vector Machine" = switch(input$kernel_type,
-    #                                                          "linear" = list(C = as.numeric(input$C_linear)),
-    #                                                          "polynomial" = list(
-    #                                                            C = as.numeric(input$C_poly),
-    #                                                            degree = as.numeric(input$degree),
-    #                                                            scale = as.numeric(input$scale_poly)
-    #                                                          ),
-    #                                                          "rbf" = list(
-    #                                                            C = as.numeric(input$C_rbf),
-    #                                                            sigma = as.numeric(input$sigma)
-    #                                                          )
-    #                        ),
-    #                        "XGBoost" = list(
-    #                          nrounds = as.numeric(input$nrounds),
-    #                          max_depth = as.numeric(input$max_depth),
-    #                          eta = as.numeric(input$eta),
-    #                          min_child_weight = as.numeric(input$min_child_weight),
-    #                          subsample = as.numeric(input$subsample),
-    #                          gamma = as.numeric(input$gamma),
-    #                          colsample_bytree = as.numeric(input$colsample_bytree)
-    #                        ),
-    #                        "Artificial Neural Networks" = list(
-    #                          size = as.numeric(input$size),
-    #                          decay = as.numeric(input$decay)
-    #                        )
-    # ) 
-    # 
-    # # Prepare and train the model
-
+    ######## Visulize Training process ########
+    output$accuracyPlot <- renderPlot({
+      ggplot(modelFit)
+    })
     # ggplot(modelFit)
   })
     
