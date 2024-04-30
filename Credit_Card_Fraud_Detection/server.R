@@ -431,7 +431,7 @@ server <- function(input, output, session) {
     )
     modelMethod <- switch(input$model_type,
                       "Random Forest" = "ranger",
-                      "Support Vector Machine" = "svmRadial",
+                      "Support Vector Machine" = switch(input$kernel_type,"linear" = "svmLinear","polynomial" = "svmPoly","rbf" = "svmRadial"),
                       "XGBoost" = "xgbTree",
                       "Artificial Neural Networks" = "nnet"
     )
@@ -442,7 +442,23 @@ server <- function(input, output, session) {
                               splitrule =input$splitrule,
                               min.node.size = as.numeric(input$min_node_size)
                             ),
-                          "Support Vector Machine" = "nnet",
+                          "Support Vector Machine" = switch(
+                              input$kernel_type,
+                                "linear" = 
+                                    expand.grid(C = as.numeric(input$C_linear)
+                                ),
+                                "polynomial" = 
+                                    expand.grid(
+                                      C = as.numeric(input$C_poly),
+                                      degree = as.numeric(input$degree),
+                                      scale = as.numeric(input$scale_poly)
+                                ),
+                                "rbf" = 
+                                    expand.grid(
+                                    C = as.numeric(input$C_rbf),
+                                    sigma = as.numeric(input$sigma)
+                                )
+                           ),
                           "XGBoost" = 
                             expand.grid(
                               nrounds = as.numeric(input$nrounds),
@@ -466,7 +482,7 @@ server <- function(input, output, session) {
         metric = "ROC",
         num.trees = 50,#TODO: make this a input 
       )
-    }else{
+    }else if (input$model_type =="XGBoost") {
       modelFit <-train(
             TARGET ~ .,
             data = transformed_train, 
@@ -474,6 +490,16 @@ server <- function(input, output, session) {
             trControl = trainingControl,
             tuneGrid = tuningParams,
             metric = "ROC"
+      )
+    }else if (input$model_type =="SVM"){
+      modelFit <-train(
+        TARGET ~ .,
+        data = transformed_train, 
+        method = modelMethod,
+        trControl = trainingControl,
+        verbose = FALSE,
+        tuneGrid = tuningParams,
+        metric = "ROC"
       )
     }
     
