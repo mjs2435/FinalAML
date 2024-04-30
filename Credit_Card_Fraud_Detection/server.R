@@ -396,19 +396,6 @@ server <- function(input, output, session) {
     reqInputs <- list()
     if (input$model_type == "Random Forest") {
       reqInputs <- c("mtry", "splitrule", "min_node_size")
-      # Retrieve values from input
-      mtry_values <- toString(input$mtry)  # Convert vector to string if multiple selections
-      splitrule_value <- input$splitrule
-      min_node_size_values <- toString(input$min_node_size)  # Convert vector to string if multiple selections
-      
-      # Construct the message
-      message <- paste("Values:\n",
-                       "mtry: ", mtry_values, "\n",
-                       "splitrule: ", splitrule_value, "\n",
-                       "min_node_size: ", min_node_size_values)
-      
-      # Display the notification
-      showNotification(message, type = "message")
     } else if (input$model_type == "Support Vector Machine") {
       # Check specific to the kernel type selected
       switch(input$kernel_type,
@@ -455,7 +442,8 @@ server <- function(input, output, session) {
                               splitrule =input$splitrule,
                               min.node.size = as.numeric(input$min_node_size)
                             ),
-                          "Support Vector Machine" = 
+                          "Support Vector Machine" = "nnet",
+                          "XGBoost" = 
                             expand.grid(
                               nrounds = as.numeric(input$nrounds),
                               max_depth = as.numeric(input$max_depth),
@@ -465,7 +453,6 @@ server <- function(input, output, session) {
                               gamma = as.numeric(input$gamma),
                               colsample_bytree = as.numeric(input$colsample_bytree)
                             ),
-                          "XGBoost" = "xgbTree",
                           "Artificial Neural Networks" = "nnet"
     )
     
