@@ -110,7 +110,7 @@ ui <- fluidPage(
                  # Slider for Training Data Percentage
                  sliderInput("data_split", "Training Data (%)", 
                              min = 50, max = 90, value = 70, step = 5, post = "%"),
-                 selectInput("target", "Target (Y)", choices = TARGET),#TODO:choices = NULL
+                 selectInput("target", "Target (Y)", choices = NULL),#TODO:choices = NULL
                  actionButton("submit_split", "Split"),
                  
                  # Selection Input for Imputation Method
