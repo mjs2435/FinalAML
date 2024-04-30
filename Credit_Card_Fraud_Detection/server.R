@@ -109,33 +109,16 @@ server <- function(input, output, session) {
     data <- reactive_dataset()# Access the current dataset
     converted_count <- 0
     
-    # TODO:---not working
-    if (value_to_convert == "EMPTY") {
-      # Convert all empty or blank entries to NA
-      for (col_name in names(data)) {
-        is_blank <- data[[col_name]] == ""  # Check for empty strings
-        data[[col_name]][is_blank] <- NA
-        converted_count <- converted_count + sum(is_blank)
-      }
-      if (converted_count > 0) {
-        na_message <- sprintf("Converted all empty entries to NA across all columns. Total: %d entries modified.", converted_count)
-      } else {
-        na_message <- "There are no empty entries in the dataset."
-      }
+    # Convert specific value to NA
+    for (col_name in names(data)) {
+      matching_indices <- which(data[[col_name]] == value_to_convert)
+      data[[col_name]][matching_indices] <- NA
+      converted_count <- converted_count + length(matching_indices)
+    }
+    if (converted_count > 0) {
+      na_message <- sprintf("Converted all entries matching '%s' to NA across all columns.\n Total: %d entries modified.", value_to_convert, converted_count)
     } else {
-    #---not working
-      
-      # Convert specific value to NA
-      for (col_name in names(data)) {
-        matching_indices <- which(data[[col_name]] == value_to_convert)
-        data[[col_name]][matching_indices] <- NA
-        converted_count <- converted_count + length(matching_indices)
-      }
-      if (converted_count > 0) {
-        na_message <- sprintf("Converted all entries matching '%s' to NA across all columns.\n Total: %d entries modified.", value_to_convert, converted_count)
-      } else {
-        na_message <- sprintf("The input '%s' does not exist in the dataset.", value_to_convert)
-      }
+      na_message <- sprintf("The input '%s' does not exist in the dataset.", value_to_convert)
     }
     
     # Update the reactive dataset with changes
@@ -241,9 +224,9 @@ server <- function(input, output, session) {
     test_data <- data_test()
     
     train_data$TARGET <- factor(train_data$TARGET, levels = c("0", "1"),
-                       labels = c("Faud", "Non-Faud"))
+                       labels = c("Faud", "NonFaud"))
     test_data$TARGET <- factor(test_data$TARGET, levels = c("0", "1"),
-                                labels = c("Faud", "Non-Faud"))
+                                labels = c("Faud", "NonFaud"))
     
     # Start with checking data availability
     if (is.null(train_data) || is.null(test_data)) {
@@ -255,7 +238,7 @@ server <- function(input, output, session) {
     pre_message <- "Preprocessing steps applied: "
     
     # Initialize the recipe with the training data
-    blueprint <- recipe(~., data = train_data) %>%
+    blueprint <- recipe(TARGET ~., data = train_data) %>%
       step_string2factor(all_nominal(), -all_outcomes())
     pre_message <- paste(pre_message, "Convert all nominal predictors to factors,")
     
@@ -298,6 +281,9 @@ server <- function(input, output, session) {
     
     # Output the preprocessing message
     output$pre_message <- renderText({ pre_message })
+    
+    transformed_train(transformed_train)
+    transformed_test(transformed_test)
   })
   
   
@@ -365,76 +351,214 @@ server <- function(input, output, session) {
   
   observeEvent(input$train_model, {
     transformed_train = transformed_train()
+    ######## Checking input ########
     
-    # Define training control conditionally
+    # 1.Checking Triaing Data
+    if (is.null(transformed_train)) {
+      showNotification("Preprocessing has not yet been applied. Go back to the Preprocessing step and make sure you preprocess the data.", type = "error")
+      return()
+    }
+    
+    # 2.Checking Resample inputs
+    
+    # Define a function to gather input details
+    getInputDetails <- function(inputName) {
+      inputValue <- input[[inputName]]
+      inputType <- typeof(inputValue)
+      return(paste(inputName, "value:", inputValue, ", type:", inputType))
+    }
+    
+    # Initialize an empty vector to store input details
+    inputDetails <- c()
+    
+    # Check if the required inputs for the selected resampling method are provided
+    if (input$resample_method == "Cross-validation") {
+      inputDetails <- c(inputDetails, getInputDetails("fold"))
+    } else if (input$resample_method == "Repeated CV") {
+      inputDetails <- c(inputDetails, getInputDetails("fold"), getInputDetails("repeats"))
+    } else if (input$resample_method == "Bootstrap") {
+      inputDetails <- c(inputDetails, getInputDetails("n_boot"))
+    }
+    
+    # Construct notification message
+    message <- paste("Resampling Method:", input$resample_method, "\n", 
+                     "Input details:", paste(inputDetails, collapse = "\n"))
+    
+    # Validate required inputs
+    if (any(sapply(inputDetails, function(detail) grepl("value: 0", detail)))) {
+      showNotification(paste("Missing required inputs for", input$resample_method), type = "error")
+      return()
+    }
+    
+    # Show detailed notification and proceed
+    showNotification(message, type = "message")
+    # Checking Model inputs 
+    reqInputs <- list()
+    if (input$model_type == "Random Forest") {
+      reqInputs <- c("mtry", "splitrule", "min_node_size")
+      # Retrieve values from input
+      mtry_values <- toString(input$mtry)  # Convert vector to string if multiple selections
+      splitrule_value <- input$splitrule
+      min_node_size_values <- toString(input$min_node_size)  # Convert vector to string if multiple selections
+      
+      # Construct the message
+      message <- paste("Values:\n",
+                       "mtry: ", mtry_values, "\n",
+                       "splitrule: ", splitrule_value, "\n",
+                       "min_node_size: ", min_node_size_values)
+      
+      # Display the notification
+      showNotification(message, type = "message")
+    } else if (input$model_type == "Support Vector Machine") {
+      # Check specific to the kernel type selected
+      switch(input$kernel_type,
+             "linear" = {
+               reqInputs <- c("C_linear")
+             },
+             "polynomial" = {
+               reqInputs <- c("C_poly", "degree", "scale_poly")
+             },
+             "rbf" = {
+               reqInputs <- c("C_rbf", "sigma")
+             }
+      )
+    } else if (input$model_type == "XGBoost") {
+      reqInputs <- c("nrounds", "max_depth", "eta", "min_child_weight", "subsample", "gamma", "colsample_bytree")
+    } else if (input$model_type == "Artificial Neural Networks") {
+      reqInputs <- c("size", "decay")
+    }
+    
+    # Validate required inputs
+    missingInputs <- sapply(reqInputs, function(x) is.null(input[[x]]) || length(input[[x]]) == 0)
+    if (any(missingInputs)) {
+      missingNames <- names(missingInputs)[missingInputs]
+      showNotification(paste("Missing required inputs:", paste(missingNames, collapse=", ")), type = "error")
+      return()
+    }
+    
     trainingControl <- switch(input$resample_method,
-                              "Cross-validation" = trainControl(method = "cv", number = input$fold,classProbs = TRUE, summaryFunction = twoClassSummary),
-                              "Repeated CV" = trainControl(method = "repeatedcv", number = input$fold, repeats = input$repeats,classProbs = TRUE, summaryFunction = twoClassSummary),
-                              "Bootstrap" = trainControl(method = "boot", number = input$n_boot,classProbs = TRUE, summaryFunction = twoClassSummary),
-                              trainControl(method = "none")  # Default fallback
+                          "Cross-validation" = trainControl(method = "cv", number = input$fold,classProbs = TRUE, summaryFunction = twoClassSummary),
+                          "Repeated CV" = trainControl(method = "repeatedcv", number = input$fold, repeats = input$repeats,classProbs = TRUE, summaryFunction = twoClassSummary),
+                          "Bootstrap" = trainControl(method = "boot", number = input$n_boot,classProbs = TRUE, summaryFunction = twoClassSummary),
+                          trainControl(method = "none")  # Default fallback
     )
-    
-    # Define the model method and tuning parameters dynamically
     modelMethod <- switch(input$model_type,
-                          "Random Forest" = "rf",
-                          "Support Vector Machine" = "svmRadial",
+                      "Random Forest" = "ranger",
+                      "Support Vector Machine" = "svmRadial",
+                      "XGBoost" = "xgbTree",
+                      "Artificial Neural Networks" = "nnet"
+    )
+    tuningParams <- switch(input$model_type,
+                          "Random Forest" = 
+                            expand.grid(
+                              mtry = as.numeric(input$mtry),
+                              splitrule =input$splitrule,
+                              min.node.size = as.numeric(input$min_node_size)
+                            ),
+                          "Support Vector Machine" = 
+                            expand.grid(
+                              nrounds = as.numeric(input$nrounds),
+                              max_depth = as.numeric(input$max_depth),
+                              eta = as.numeric(input$eta),
+                              min_child_weight = as.numeric(input$min_child_weight),
+                              subsample = as.numeric(input$subsample),
+                              gamma = as.numeric(input$gamma),
+                              colsample_bytree = as.numeric(input$colsample_bytree)
+                            ),
                           "XGBoost" = "xgbTree",
                           "Artificial Neural Networks" = "nnet"
     )
-  
-    # Get tuning parameters dynamically based on user input
-    tuningParams <- switch(input$model_type,
-                           "Random Forest" = list(
-                             mtry = as.numeric(input$mtry),
-                             splitrule = input$splitrule,
-                             min_node_size = as.numeric(input$min_node_size)
-                           ),
-                           "Support Vector Machine" = switch(input$kernel_type,
-                                                             "linear" = list(C = as.numeric(input$C_linear)),
-                                                             "polynomial" = list(
-                                                               C = as.numeric(input$C_poly),
-                                                               degree = as.numeric(input$degree),
-                                                               scale = as.numeric(input$scale_poly)
-                                                             ),
-                                                             "rbf" = list(
-                                                               C = as.numeric(input$C_rbf),
-                                                               sigma = as.numeric(input$sigma)
-                                                             )
-                           ),
-                           "XGBoost" = list(
-                             nrounds = as.numeric(input$nrounds),
-                             max_depth = as.numeric(input$max_depth),
-                             eta = as.numeric(input$eta),
-                             min_child_weight = as.numeric(input$min_child_weight),
-                             subsample = as.numeric(input$subsample),
-                             gamma = as.numeric(input$gamma),
-                             colsample_bytree = as.numeric(input$colsample_bytree)
-                           ),
-                           "Artificial Neural Networks" = list(
-                             size = as.numeric(input$size),
-                             decay = as.numeric(input$decay)
-                           )
-    )
     
+    if(input$model_type =="Random Forest"){
+      modelFit <- train(
+        TARGET ~ .,
+        data = transformed_train,
+        method = modelMethod,
+        trControl = trainingControl,
+        tuneGrid = tuningParams,
+        metric = "ROC",
+        num.trees = 50,#TODO: make this a input 
+      )
+    }else{
+      modelFit <-train(
+            TARGET ~ .,
+            data = transformed_train, 
+            method = modelMethod,
+            trControl = trainingControl,
+            tuneGrid = tuningParams,
+            metric = "ROC"
+      )
+    }
     
-    # Prepare and train the model
-    modelFit <- train(
-      Target ~ ., 
-      data = transformed_train, 
-      method = modelMethod, 
-      trControl = trainingControl,
-      tuneGrid = expand.grid(tuningParams),
-      metric = "ROC",
-      na.action = na.omit
-    )
-    
-    # Output the model's training results
-    output$training_result <- DT::renderDT({
-      datatable(data.frame(Predictions = predict(modelFit, newdata = transformed_train)))
-    })
-    
-  }, ignoreInit = TRUE)
-  
-  
+    showNotification(paste("Training Complete."),type = "message",duration = NULL)
+    # # Define training control conditionally
 
+    # 
+    # # Define the model method and tuning parameters dynamically
+
+    # tuningParams <- switch(input$model_type,
+    #                        "Random Forest" = expand.grid(
+    #                          mtry = c(as.numeric(input$mtry)),
+    #                          splitrule =c(input$splitrule),
+    #                          min.node.size = c(as.numeric(input$min_node_size),
+    #                          
+    #                        ),
+    #                        "Support Vector Machine" = switch(input$kernel_type,
+    #                                                          "linear" = list(C = as.numeric(input$C_linear)),
+    #                                                          "polynomial" = list(
+    #                                                            C = as.numeric(input$C_poly),
+    #                                                            degree = as.numeric(input$degree),
+    #                                                            scale = as.numeric(input$scale_poly)
+    #                                                          ),
+    #                                                          "rbf" = list(
+    #                                                            C = as.numeric(input$C_rbf),
+    #                                                            sigma = as.numeric(input$sigma)
+    #                                                          )
+    #                        ),
+    #                        "XGBoost" = list(
+    #                          nrounds = as.numeric(input$nrounds),
+    #                          max_depth = as.numeric(input$max_depth),
+    #                          eta = as.numeric(input$eta),
+    #                          min_child_weight = as.numeric(input$min_child_weight),
+    #                          subsample = as.numeric(input$subsample),
+    #                          gamma = as.numeric(input$gamma),
+    #                          colsample_bytree = as.numeric(input$colsample_bytree)
+    #                        ),
+    #                        "Artificial Neural Networks" = list(
+    #                          size = as.numeric(input$size),
+    #                          decay = as.numeric(input$decay)
+    #                        )
+    # ) 
+    # 
+    # # Prepare and train the model
+
+    # ggplot(modelFit)
+  })
+    
+  # observeEvent(input$train_model, {
+  #   transformed_train = transformed_train()
+  # 
+  #   # Define training control conditionally
+  #   trainingControl <- switch(input$resample_method,
+  #                             "Cross-validation" = trainControl(method = "cv", number = input$fold,classProbs = TRUE, summaryFunction = twoClassSummary),
+  #                             "Repeated CV" = trainControl(method = "repeatedcv", number = input$fold, repeats = input$repeats,classProbs = TRUE, summaryFunction = twoClassSummary),
+  #                             "Bootstrap" = trainControl(method = "boot", number = input$n_boot,classProbs = TRUE, summaryFunction = twoClassSummary),
+  #                             trainControl(method = "none")  # Default fallback
+  #   )
+  # 
+
+  # 
+  #   # Get tuning parameters dynamically based on user input
+
+  # 
+  # 
+
+  # 
+  #   # Output the model's training results
+  #   output$training_result <- DT::renderDT({
+  #     datatable(data.frame(Predictions = predict(modelFit, newdata = transformed_train)))
+  #   })
+  # 
+  # })
+  
 }# end of server

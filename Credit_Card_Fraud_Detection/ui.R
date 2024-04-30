@@ -97,7 +97,7 @@ ui <- fluidPage(
                sidebarPanel(
                  
                  # Text Input for NA Conversion
-                 textInput("na_text", "Handle Sentinel Value ", value = ""),
+                 textInput("na_text", "Handle Sentinel Value ", value = "XNA"),#TODO:value = ""
                  helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time.Note:Empty entries will be converted to NA directly during model building."),
                  actionButton("submit_na", "Convert"),
                  
@@ -110,16 +110,16 @@ ui <- fluidPage(
                  # Slider for Training Data Percentage
                  sliderInput("data_split", "Training Data (%)", 
                              min = 50, max = 90, value = 70, step = 5, post = "%"),
-                 selectInput("target", "Target (Y)", choices = NULL),
+                 selectInput("target", "Target (Y)", choices = TARGET),#TODO:choices = NULL
                  actionButton("submit_split", "Split"),
                  
                  # Selection Input for Imputation Method
                  selectInput("impute_method", "Select Imputation Method",
                              choices = c(
+                                         "KNN Imputation" = "knn",
                                          "Mean Imputation" = "mean",
                                          "Median Imputation" = "median",
                                          "Mode Imputation" = "mode",
-                                         "KNN Imputation" = "knn",
                                          "Drop Observations with NAs" = "drop_na",
                                          "None" = "none")),
                  
@@ -127,9 +127,9 @@ ui <- fluidPage(
                  
                  # Checkboxes for Additional Preprocessing Options
                  #checkboxInput("remove_outliers", "Remove Outliers", value = FALSE),
-                 checkboxInput("normalize_data", "Normalize Variables", value = FALSE),
-                 checkboxInput("standardize_data", "Standardize Variables", value = FALSE),
-                 checkboxInput("remove_zero_var", "Remove Near Zero Variance Variables", value = FALSE),
+                 checkboxInput("normalize_data", "Normalize Variables", value = TRUE),
+                 checkboxInput("standardize_data", "Standardize Variables", value = TRUE),
+                 checkboxInput("remove_zero_var", "Remove Near Zero Variance Variables", value = TRUE),
                  actionButton("submit_pre", "Apply"),
                  
                  
@@ -163,7 +163,7 @@ ui <- fluidPage(
                  h3("Hyperparameter Tuning", style = "color: #337ab7;"),
                  selectInput("model_type", "Choose Model for Tuning",
                              choices = c("Random Forest", "Support Vector Machine", "XGBoost", "Artificial Neural Networks"),
-                             selected = "XGBoost"),
+                             selected = "Random Forest"),
                  uiOutput("tuning_params"),
                  actionButton("train_model", "Start Training", icon = icon("play"))
                ),
