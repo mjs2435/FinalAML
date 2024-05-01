@@ -16,9 +16,12 @@ library(rsample)
 library(DT)
 library(tidymodels)
 library(tidyverse)
+
+##~~ MOST IMPORTANT - ADDED PACKAGE DEPENDENCIES TO PREVENT CRASHING ~~##
 library(ranger)
 library(xgboost)
 library("kernlab")
+##~~ ~~##
 
 data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
 
@@ -245,6 +248,8 @@ server <- function(input, output, session) {
       step_string2factor(all_nominal(), -all_outcomes())
     pre_message <- paste(pre_message, "Convert all nominal predictors to factors,")
     
+    
+    ##~~ REMOVING NEAR ZERO VARIANCE PREDICTORS MOVED UP, REMOVING ZERO VARIANCE NO MATTER WHAT ~~##
     if (input$remove_zero_var) {
       blueprint <- blueprint %>% step_nzv(all_predictors())
       pre_message <- paste(pre_message, "Remove near zero variance predictors,")
@@ -252,7 +257,7 @@ server <- function(input, output, session) {
       blueprint <- blueprint %>% step_zv(all_predictors())
       pre_message <- paste(pre_message, "Remove equal to zero variance predictors,")
     }
-    
+    ##~~ ~~##
     # Imputation steps and messages
     blueprint <- switch(input$impute_method,
                         "mean" = { blueprint <-blueprint %>% step_impute_mean(all_numeric_predictors()); pre_message <- paste(pre_message, "Mean imputation for numeric predictors,"); blueprint },
@@ -283,9 +288,11 @@ server <- function(input, output, session) {
     # Finalize and apply the preprocessing blueprint
     blueprint<- blueprint%>%step_dummy(all_nominal(), -all_outcomes())
     
+    
+    ##~~ REMOVING CATEGORIES WHICH ARE VERY INFREQUENT TO PREVENT ERRORS IN CROSS VALIDATION ~~##
     blueprint <- blueprint %>% step_nzv(all_predictors(), freq_cut = 100)
     pre_message <- paste(pre_message, "Remove extremely low frequency categories,")
-
+    ##~~ ~~##
     blueprint_prep <- prep(blueprint, training = train_data)
     
     transformed_train<-(bake(blueprint_prep, new_data = train_data))
@@ -410,7 +417,9 @@ server <- function(input, output, session) {
     reqInputs <- list()
     if (input$model_type == "Random Forest") {
       reqInputs <- c("mtry", "splitrule", "min_node_size")
+    ##~~ CHANGED FROM svm TO Support Vector Machine TO MATCH OUTPUT FROM model_type PARAMETER ~~##
     } else if (input$model_type == "Support Vector Machine") {
+    ##~~ ~~##
       # Check specific to the kernel type selected
 
       switch(input$kernel_type,
