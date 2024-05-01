@@ -241,7 +241,8 @@ server <- function(input, output, session) {
     pre_message <- "Preprocessing steps applied: "
     
     # Initialize the recipe with the training data
-    blueprint <- recipe(TARGET ~., data = train_data) %>%
+    formula <- as.formula(paste(input$target, "~ ."))
+    blueprint <- recipe(formula, data = train_data) %>%
       step_string2factor(all_nominal(), -all_outcomes())
     pre_message <- paste(pre_message, "Convert all nominal predictors to factors,")
     
@@ -482,9 +483,10 @@ server <- function(input, output, session) {
     )
     
     ######## Training ########
+    formula <- as.formula(paste(input$target, "~ ."))
     if(input$model_type =="Random Forest"){
       modelFit <- train(
-        TARGET ~ .,
+        formula,
         data = transformed_train,
         method = modelMethod,
         trControl = trainingControl,
@@ -495,7 +497,7 @@ server <- function(input, output, session) {
       showNotification(paste("Training Complete."),type = "message",duration = NULL)
     }else if (input$model_type =="SVM"){
       modelFit <-train(
-        TARGET ~ .,
+        formula,
         data = transformed_train, 
         method = modelMethod,
         trControl = trainingControl,
@@ -506,7 +508,7 @@ server <- function(input, output, session) {
       showNotification(paste("Training Complete."),type = "message",duration = NULL)
     }else {
       modelFit <-train(
-            TARGET ~ .,
+            formula,
             data = transformed_train, 
             method = modelMethod,
             trControl = trainingControl,
@@ -528,7 +530,7 @@ server <- function(input, output, session) {
     
     if(input$model_type =="Random Forest"){
       final_model <- train(
-        TARGET ~ .,
+        formula,
         data = transformed_train,
         method = modelMethod,
         trControl = trainingControl,
@@ -539,7 +541,7 @@ server <- function(input, output, session) {
       showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
     }else if (input$model_type =="SVM"){
       final_model <-train(
-        TARGET ~ .,
+        formula,
         data = transformed_train, 
         method = modelMethod,
         trControl = trainingControl,
@@ -550,7 +552,7 @@ server <- function(input, output, session) {
       showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
     }else {
       final_model <-train(
-        TARGET ~ .,
+        formula,
         data = transformed_train, 
         method = modelMethod,
         trControl = trainingControl,
@@ -568,8 +570,8 @@ server <- function(input, output, session) {
     train_pred <- predict(final_model, newdata = transformed_train)
     test_pred <- predict(final_model, newdata = transformed_test)
     #train_pred_factor <- factor(train_pred, levels = levels(transformed_train$TARGET))
-    train_conf_matrix <- confusionMatrix(train_pred, transformed_train$TARGET)
-    test_conf_matrix <- confusionMatrix(test_pred, transformed_test$TARGET)
+    train_conf_matrix <- confusionMatrix(train_pred, transformed_train[[input$target]])
+    test_conf_matrix <- confusionMatrix(test_pred, transformed_test[[input$target]])
     
     #--------------------------- Model Evaluation ---------------------------
     # Graphical evaluation (example with ROC curve)
