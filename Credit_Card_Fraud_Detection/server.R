@@ -17,6 +17,7 @@ library(DT)
 library(tidymodels)
 library(tidyverse)
 library(ranger)
+library(shinyjs)
 
 data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
 
@@ -146,7 +147,7 @@ server <- function(input, output, session) {
     drop_message <- ""
     
     # Drop rows where the target column has NA values
-    target_column <- "TARGET"  # replace 'target' with the name of your target column
+    target_column <- input$target  # replace 'target' with the name of your target column
     data <- data[!is.na(data[[target_column]]), ]
     
     # Drop features based on the threshold set by the slider
@@ -225,9 +226,9 @@ server <- function(input, output, session) {
     train_data <- data_train()
     test_data <- data_test()
     
-    train_data$TARGET <- factor(train_data$TARGET, levels = c("0", "1"),
+    train_data[[input$target]]<- factor(train_data[[input$target]], levels = c("0", "1"),
                        labels = c("Faud", "NonFaud"))
-    test_data$TARGET <- factor(test_data$TARGET, levels = c("0", "1"),
+    test_data[[input$target]] <- factor(test_data[[input$target]], levels = c("0", "1"),
                                 labels = c("Faud", "NonFaud"))
     
     # Start with checking data availability

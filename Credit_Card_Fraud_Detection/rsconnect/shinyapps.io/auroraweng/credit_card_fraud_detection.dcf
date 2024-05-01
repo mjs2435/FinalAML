@@ -5,9 +5,9 @@ account: auroraweng
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 11673135
-bundleId: 8561123
+bundleId: 8562009
 url: https://auroraweng.shinyapps.io/credit_card_fraud_detection/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: .RData
+ignoredFiles: .RData|data/testing.csv

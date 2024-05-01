@@ -18,7 +18,7 @@ library(tidyverse)
 library(SmartEDA)
 library(gplots)
 library(ranger)
-
+library(shinyjs)
 
 setwd("/Users/auroraweng/Desktop/STAT3106 AML/FinalAML/")
 data <- read.csv("Credit_Card_Fraud_Detection/data/subset_application_data.csv", header = TRUE)

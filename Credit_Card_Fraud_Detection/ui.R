@@ -14,16 +14,25 @@ ui <- fluidPage(
     tabPanel("Overview", icon = icon("info-circle"),
              titlePanel("Welcome to the Machine Learning Model Explorer"),
              mainPanel(
-               h4("App Overview"),
-               p("This comprehensive tool is designed to assist students and researchers in analyzing and visualizing machine learning datasets. It offers capabilities ranging from data uploading and preprocessing to exploratory data analysis."),
-               h5("Key Features:"),
-               tags$ul(
-                 tags$li("Upload Data: Securely import your datasets directly into the app. You can select from pre-loaded datasets like 'Credit Card Fraud Detection' for quick access or upload your own data in CSV format."),
-                 tags$li("Data Exploration: Utilize various interactive visualizations to understand data distributions, correlations, and patterns. Tools such as scatterplots, histograms, and numeric summaries are available."),
-                 tags$li("Data Preprocessing: Prepare your data for machine learning models by handling missing values, encoding categorical data, and splitting datasets into training and testing subsets."),
-                 tags$li("Each tab is equipped with specific instructions and options to guide you through the process of machine learning data management.")
-               ),
-               p("Start by selecting a tab and following the prompts to load and process your data.")
+               h3("Key Features"),
+               p("This Shiny app provides an integrated environment to upload, preprocess, explore, and model your data effectively using a variety of machine learning algorithms. It is tailored for ease of use and supports extensive customization to cater to both novice and experienced data scientists."),
+               h4("1. Data Upload and Initial Exploration"),
+               p("Users can upload their own dataset or use a pre-loaded dataset. Data is displayed in a dynamic table allowing for immediate preview and interaction."),
+               h4("2. Data Preprocessing"),
+               p("Functionalities to handle missing values, feature selection, and data splitting into training and test sets. Provides various data imputation methods and options for feature encoding and scaling."),
+               h4("3. Exploratory Data Analysis"),
+               p("Generate histograms and scatter plots to understand data distributions and relationships. Interactive controls allow users to select variables and adjust plot parameters."),
+               h4("4. Model Training and Tuning"),
+               p("Supports multiple machine learning models including Decision Trees, Random Forests, SVM, and Neural Networks. Customizable hyperparameters for each model type with options like cross-validation and bootstrapping for performance evaluation."),
+               h4("5. Model Evaluation"),
+               p("Displays confusion matrices and ROC curves for training and test datasets to assess model performance. Best model parameters are displayed upon training completion."),
+               h4("6. User Interface Customizations"),
+               p("Utilizes shinythemes for aesthetic enhancements. Responsive design elements such as conditional panels and notifications enhance user interaction."),
+               h3("Technologies Used"),
+               p("R Packages: shiny, caret, tidymodels, ggplot2, DT, among others, providing a robust backend for data manipulation and modeling."),
+               p("Interactive UI: Leverages shinyjs for enhanced JavaScript interactions within the R Shiny environment."),
+               h3("Target Audience"),
+               p("Data Science practitioners and educators looking for a flexible tool to teach, learn, and apply machine learning concepts effectively.")
              )
     ),# end of Overview
     
@@ -192,7 +201,7 @@ ui <- fluidPage(
                )
              )
     ),
-    selected = "Training"
+    selected = "Overview"
   )
 )
 #
