@@ -30,8 +30,10 @@ transformed_test <- reactiveVal()
 finalModel<- reactiveVal()
 server <- function(input, output, session) {
   plan(multisession)
+  
   #--------------------------- Upload Data ---------------------------
   # Reactive expression to handle file upload or selection
+  
   File <- reactive({
     if (input$dataset == 'Upload your own file') {
       req(input$file)
@@ -48,30 +50,44 @@ server <- function(input, output, session) {
     datatable(
       File(),
       options = list(
-        scrollY = TRUE,   # Sets the height of the scrollable area
+        scrollY = TRUE,   
         scrollX = TRUE,
-        paging = TRUE       # Disables pagination, adjust as needed
+        paging = TRUE 
       )
     )
   })
   #--------------------------- Data Exploration ---------------------------
   # Update response and explanatory variable choices
   observeEvent(File(), {
+    data = File()
+    numerical_var = names(data)[sapply(data, is.numeric)]
+    
     updateSelectInput(session, "response", choices = names(File()))
     updateSelectInput(session, "explanatory", choices = names(File()))
-    updateSelectInput(session, "var", choices = names(File()))
+    updateSelectInput(session, "var", choices = numerical_var)
     updateSelectInput(session, "target", choices = names(File()))
+    
   })
   
   # Render scatterplot
   output$plot1 <- renderPlot({
-    p <- ggplot(data = File(), aes_string(x = input$explanatory, y = input$response)) +
+    # Load the data and ensure it is a dataframe
+    data <- File()
+    
+    # Remove rows with NA values
+    data_clean <- na.omit(data)
+    
+    # Use aes_string to specify variables and create the plot
+    p <- ggplot(data_clean, aes_string(x = input$explanatory, y = input$response)) +
       geom_point(alpha = input$shade) +
       theme_minimal()
+    
+    # Add marginal histograms if selected
     if (input$marginal) {
       p <- ggMarginal(p, type = "histogram")
     }
-    p
+    
+    p  # Return the plot
   })
   
   # Histogram plot
