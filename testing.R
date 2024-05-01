@@ -17,6 +17,7 @@ library(tidymodels)
 library(tidyverse)
 library(SmartEDA)
 library(gplots)
+library(ranger)
 
 
 setwd("/Users/auroraweng/Desktop/STAT3106 AML/FinalAML/")
@@ -47,7 +48,7 @@ TARGET = transformed_train$TARGET
 
 hyper_grid <- expand.grid(mtry = c(13, 15, 17, 20, 22, 25), 
                           
-                          splitrule = c("gini", "extratrees", "hellinger"), # 
+                          splitrule = c("gini"), # 
                           
                           min.node.size = c(5, 7, 9)) # 
 rf_fit <- train(TARGET ~ .,
@@ -65,9 +66,39 @@ rf_fit <- train(TARGET ~ .,
                 )
 
 
+rf_final <- train(TARGET ~., 
+                      
+                      data = transformed_train,
+                      
+                      method = "ranger",
+                      
+                      trControl = trainingControl, 
+                      
+                      metric = "ROC",
+                      
+                      tuneGrid = data.frame(rf_fit$bestTune),
+                      
+                      num.trees = 200)
 ggplot(rf_fit)
 
 plot(rf_fit, metric = "ROC", plotType = "level")
 plot(rf_fit, metric = "Sens", plotType = "level")
 plot(rf_fit, metric = "Spec", plotType = "level")
 plot(rf_fit, metric = "ROCSD", plotType = "level")
+bestper = rf_fit$bestTune
+bestmodel = rf_fit$finalModel
+
+
+
+# Predict the class labels for the test set
+class_predictions <- predict(rf_final, newdata = transformed_train)
+print(length(class_predictions))
+print(length(transformed_train$TARGET))
+# Ensure both predictions and true values are factors and have the same levels
+class_predictions_factor <- factor(class_predictions, levels = levels(transformed_train$TARGET))
+
+# Generate the confusion matrix
+conf_matrix <- confusionMatrix(class_predictions, transformed_train$TARGET)
+conf_matrix_table = conf_matrix$table
+print(conf_matrix$table)
+print(conf_matrix)

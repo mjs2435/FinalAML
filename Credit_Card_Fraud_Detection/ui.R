@@ -171,13 +171,26 @@ ui <- fluidPage(
                  tabsetPanel(
                    #tabPanel("Resampling Output", textOutput("resampling_output")),
                    #tabPanel("Tuning Output", textOutput("tuning_output")),
-                   tabPanel("Training result", plotOutput("accuracyPlot"))
+                   tabPanel("Training result", plotOutput("accuracyPlot"),verbatimTextOutput("bestAccuracy"),verbatimTextOutput("bestParameters"), verbatimTextOutput("modelSummary"))
                  )
                )
              )
     ),
-    tabPanel("Model Evaluation", icon = icon("sliders"),
-             
+    tabPanel("Model Evaluation", icon = icon("chart-bar"),
+             tabsetPanel(
+               tabPanel("Graphical Evaluation", 
+                        tags$h3(strong("Training Result")),
+                        plotOutput("train_plot"),
+                        tags$h3(strong("Testing Result")),
+                        plotOutput("test_plot")
+               ),
+               tabPanel("Numerical Evaluation", 
+                        tags$h3(strong("Training Result")),
+                        verbatimTextOutput("train_metrics"),
+                        tags$h3(strong("Testing Result")),
+                        verbatimTextOutput("test_metrics")
+               )
+             )
     ),
     selected = "Training"
   )

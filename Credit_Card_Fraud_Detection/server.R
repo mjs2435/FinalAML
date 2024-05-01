@@ -16,6 +16,7 @@ library(rsample)
 library(DT)
 library(tidymodels)
 library(tidyverse)
+library(ranger)
 
 data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
 
@@ -25,6 +26,7 @@ data_test <- reactiveVal()
 transformed_train <- reactiveVal()
 transformed_test <- reactiveVal()
 
+finalModel<- reactiveVal()
 server <- function(input, output, session) {
   plan(multisession)
   #--------------------------- Upload Data ---------------------------
@@ -351,10 +353,11 @@ server <- function(input, output, session) {
   
   observeEvent(input$train_model, {
     transformed_train = transformed_train()
+    transformed_test = transformed_test()
     ######## Checking input ########
     
-    # 1.Checking Triaing Data
-    if (is.null(transformed_train)) {
+    # 1.Checking Data
+    if (is.null(transformed_train)||is.null(transformed_test)) {
       showNotification("Preprocessing has not yet been applied. Go back to the Preprocessing step and make sure you preprocess the data.", type = "error")
       return()
     }
@@ -511,11 +514,93 @@ server <- function(input, output, session) {
       )
       showNotification(paste("Training Complete."),type = "message",duration = NULL)
     }
+    ######## Final Model ########
+    # Best model parameters with names
+    output$bestParameters <- renderText({
+      best_params <- modelFit$bestTune
+      # Create a readable string of parameter names and their best values
+      params_text <- sapply(names(best_params), function(x) {
+        paste(x, "=", best_params[[x]], sep="")
+      })
+      paste("Best Parameters:", paste(params_text, collapse=", "))
+    })
+    
+    if(input$model_type =="Random Forest"){
+      final_model <- train(
+        TARGET ~ .,
+        data = transformed_train,
+        method = modelMethod,
+        trControl = trainingControl,
+        tuneGrid = data.frame(modelFit$bestTune),
+        metric = "ROC",
+        num.trees = 50,#TODO: make this a input 
+      )
+      showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
+    }else if (input$model_type =="SVM"){
+      final_model <-train(
+        TARGET ~ .,
+        data = transformed_train, 
+        method = modelMethod,
+        trControl = trainingControl,
+        verbose = FALSE,
+        tuneGrid = data.frame(modelFit$bestTune),
+        metric = "ROC"
+      )
+      showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
+    }else {
+      final_model <-train(
+        TARGET ~ .,
+        data = transformed_train, 
+        method = modelMethod,
+        trControl = trainingControl,
+        tuneGrid = data.frame(modelFit$bestTune),
+        metric = "ROC"
+      )
+      showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
+    }
 
     ######## Visulize Training process ########
     output$accuracyPlot <- renderPlot({
       ggplot(modelFit)
     })
+  
+    train_pred <- predict(final_model, newdata = transformed_train)
+    test_pred <- predict(final_model, newdata = transformed_test)
+    #train_pred_factor <- factor(train_pred, levels = levels(transformed_train$TARGET))
+    train_conf_matrix <- confusionMatrix(train_pred, transformed_train$TARGET)
+    test_conf_matrix <- confusionMatrix(test_pred, transformed_test$TARGET)
+    
+    #--------------------------- Model Evaluation ---------------------------
+    # Graphical evaluation (example with ROC curve)
+    # output$train_plot <- renderPlot({
+    #   train_roc <- roc(response = transformed_train()$TARGET, predictor = train_pred[,2])
+    #   plot(train_roc, main = "ROC Curve - Training Data")
+    # })
+    # output$test_plot <- renderPlot({
+    #   test_roc <- roc(response = transformed_test()$TARGET, predictor = test_pred[,2])
+    #   plot(test_roc, main = "ROC Curve - Testing Data")
+    # })
+    
+    # Numerical evaluation
+    # output$train_metrics <- renderDataTable({
+    #   train_data <- as.data.frame(transformed_train())
+    #   train_pred <- predict(finalModel, data = train_data, type = "response")
+    #   confusionMatrix(data = factor(train_pred), reference = factor(train_data$TARGET))
+    # })
+    output$train_metrics <- renderText({
+      train_output <- capture.output(print(train_conf_matrix))
+      paste(train_output, collapse = "\n")
+      
+    })
+    output$test_metrics <- renderText({
+      test_output <- capture.output(print(test_conf_matrix))
+      paste(test_output, collapse = "\n")
+      
+    })
+    # # Model summary
+    # output$modelSummary <- renderText({
+    #   summary(modelFit$finalModel)
+    # })
     # ggplot(modelFit)
   })
     
