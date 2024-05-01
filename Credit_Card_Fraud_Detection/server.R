@@ -16,6 +16,9 @@ library(rsample)
 library(DT)
 library(tidymodels)
 library(tidyverse)
+library(ranger)
+library(xgboost)
+library("kernlab")
 
 data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
 
@@ -245,6 +248,9 @@ server <- function(input, output, session) {
     if (input$remove_zero_var) {
       blueprint <- blueprint %>% step_nzv(all_predictors())
       pre_message <- paste(pre_message, "Remove near zero variance predictors,")
+    } else {
+      blueprint <- blueprint %>% step_zv(all_predictors())
+      pre_message <- paste(pre_message, "Remove equal to zero variance predictors,")
     }
     
     # Imputation steps and messages
@@ -257,6 +263,8 @@ server <- function(input, output, session) {
                         blueprint # Default case to handle 'none' or unexpected input
     )
     
+
+    
     if (input$normalize_data) {
       blueprint <- blueprint %>% step_normalize(all_numeric_predictors())
       pre_message <- paste(pre_message, "Normalize all numeric predictors,")
@@ -268,14 +276,20 @@ server <- function(input, output, session) {
       pre_message <- paste(pre_message, "Center and scale all numeric predictors,")
     }
     
+  
+    
+    
+    
     # Finalize and apply the preprocessing blueprint
     blueprint<- blueprint%>%step_dummy(all_nominal(), -all_outcomes())
     
+    blueprint <- blueprint %>% step_nzv(all_predictors(), freq_cut = 100)
+    pre_message <- paste(pre_message, "Remove extremely low frequency categories,")
+
     blueprint_prep <- prep(blueprint, training = train_data)
     
     transformed_train<-(bake(blueprint_prep, new_data = train_data))
     transformed_test<-(bake(blueprint_prep, new_data = test_data))
-    
     # Removing trailing comma and space
     pre_message <- sub(",\\s*$", "", pre_message)
     
@@ -398,6 +412,7 @@ server <- function(input, output, session) {
       reqInputs <- c("mtry", "splitrule", "min_node_size")
     } else if (input$model_type == "Support Vector Machine") {
       # Check specific to the kernel type selected
+
       switch(input$kernel_type,
              "linear" = {
                reqInputs <- c("C_linear")
@@ -478,6 +493,7 @@ server <- function(input, output, session) {
     )
     
     ######## Training ########
+    
     if(input$model_type =="Random Forest"){
       modelFit <- train(
         TARGET ~ .,
@@ -489,7 +505,11 @@ server <- function(input, output, session) {
         num.trees = 50,#TODO: make this a input 
       )
       showNotification(paste("Training Complete."),type = "message",duration = NULL)
-    }else if (input$model_type =="SVM"){
+    }else if (input$model_type =="Support Vector Machine"){
+      # print("Here at SVM Train")
+      
+      # print(nearZeroVar(transformed_train, saveMetrics = TRUE))
+      
       modelFit <-train(
         TARGET ~ .,
         data = transformed_train, 
