@@ -122,6 +122,9 @@ server <- function(input, output, session) {
     )
   })
   
+
+  
+  
   observeEvent(input$submit_na, {
     req(input$na_text) # placeholder:unable to handle empty string at this moment
     value_to_convert <- input$na_text  # Use the text input directly
@@ -209,6 +212,8 @@ server <- function(input, output, session) {
     data_train(training(split))
     data_test(testing(split))
     
+    transformed_train(training(split))
+    transformed_test(testing(split))
     # Display the selected percentage of training data
     split_message <- sprintf("Selected training data percentage: %d%%", input$data_split)
     output$data_split_message <- renderText({ split_message })
@@ -216,8 +221,9 @@ server <- function(input, output, session) {
   
   # Render the training data table
   output$data_preview_train <- renderDT({
+    
     datatable(
-      data_train(),  # Use the reactive getter to access the data
+      transformed_train(),  # Use the reactive getter to access the data
       options = list(
         scrollY = "200px",   # Sets the height of the scrollable area
         scrollX = TRUE,
@@ -228,8 +234,10 @@ server <- function(input, output, session) {
   
   # Render the test data table
   output$data_preview_test <- renderDT({
+    print("Outputting Reactive Element for Test")
+    print(head(data_test()))
     datatable(
-      data_test(),  # Use the reactive getter to access the data
+      transformed_test(),  # Use the reactive getter to access the data
       options = list(
         scrollY = "200px",   # Sets the height of the scrollable area
         scrollX = TRUE,
@@ -288,6 +296,13 @@ server <- function(input, output, session) {
       pre_message <- paste(pre_message, "Center and scale all numeric predictors,")
     }
     
+    if (input$pca){
+      # print("In the PCA category")
+      blueprint <- blueprint %>% step_pca(all_numeric_predictors()) 
+      pre_message <- paste(pre_message, "Performed PCA on all numeric predictors,")
+      
+    }
+    
     # Finalize and apply the preprocessing blueprint
     blueprint<- blueprint%>%step_dummy(all_nominal(), -all_outcomes())
     
@@ -295,7 +310,7 @@ server <- function(input, output, session) {
     
     transformed_train<-(bake(blueprint_prep, new_data = train_data))
     transformed_test<-(bake(blueprint_prep, new_data = test_data))
-    
+    # print(head(transformed_train))
     # Removing trailing comma and space
     pre_message <- sub(",\\s*$", "", pre_message)
     
@@ -304,6 +319,7 @@ server <- function(input, output, session) {
     
     transformed_train(transformed_train)
     transformed_test(transformed_test)
+    
   })
   
   

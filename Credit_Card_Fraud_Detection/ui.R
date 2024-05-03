@@ -139,6 +139,17 @@ ui <- fluidPage(
                  checkboxInput("normalize_data", "Normalize Variables", value = TRUE),
                  checkboxInput("standardize_data", "Standardize Variables", value = TRUE),
                  checkboxInput("remove_zero_var", "Remove Near Zero Variance Variables", value = TRUE),
+                 checkboxInput("remove_zero_var", "Remove Near Zero Variance Variables", value = TRUE),
+                 checkboxInput("pca", "Principal Component Analysis", value = TRUE),
+                 # if (input$pca == 1) {
+                 #    sliderInput(
+                 #      "sliderOne",
+                 #      "Choose your value",
+                 #      min = 0,
+                 #      max = 100,
+                 #      value = 50
+                 #    )
+                 # }
                  actionButton("submit_pre", "Apply"),
                  
                  
