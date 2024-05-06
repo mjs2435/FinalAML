@@ -396,6 +396,24 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$train_model, {
+    
+    output$accuracyPlot <- renderUI({
+      withSpinner(plotOutput("plot"))
+    })
+    
+    output$plot <- renderPlot({
+      ggplot(modelFit)
+    })
+    
+    output$bestParameters <- renderText({
+      best_params <- modelFit$bestTune
+      # Create a readable string of parameter names and their best values
+      params_text <- sapply(names(best_params), function(x) {
+        paste(x, "=", best_params[[x]], sep="")
+      })
+      paste("Best Parameters:", paste(params_text, collapse=", "))
+    })
+    
     transformed_train = transformed_train()
     transformed_test = transformed_test()
     ######## Checking input ########
@@ -561,14 +579,7 @@ server <- function(input, output, session) {
     }
     ######## Final Model ########
     # Best model parameters with names
-    output$bestParameters <- renderText({
-      best_params <- modelFit$bestTune
-      # Create a readable string of parameter names and their best values
-      params_text <- sapply(names(best_params), function(x) {
-        paste(x, "=", best_params[[x]], sep="")
-      })
-      paste("Best Parameters:", paste(params_text, collapse=", "))
-    })
+
     
     if(input$model_type =="Random Forest"){
       final_model <- train(
@@ -605,9 +616,9 @@ server <- function(input, output, session) {
     }
 
     ######## Visulize Training process ########
-    output$accuracyPlot <- renderPlot({
-      ggplot(modelFit)
-    })
+    
+    
+    
   
     train_pred <- predict(final_model, newdata = transformed_train)
     test_pred <- predict(final_model, newdata = transformed_test)

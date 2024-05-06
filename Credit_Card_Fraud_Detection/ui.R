@@ -190,7 +190,8 @@ ui <- fluidPage(
                  tabsetPanel(
                    #tabPanel("Resampling Output", textOutput("resampling_output")),
                    #tabPanel("Tuning Output", textOutput("tuning_output")),
-                   tabPanel("Training result", plotOutput("accuracyPlot"),verbatimTextOutput("bestAccuracy"),verbatimTextOutput("bestParameters"), verbatimTextOutput("modelSummary"))
+                   
+                   tabPanel("Training result", uiOutput("accuracyPlot"),verbatimTextOutput("bestAccuracy"),verbatimTextOutput("bestParameters"), verbatimTextOutput("modelSummary"))
                  )
                )
              )
