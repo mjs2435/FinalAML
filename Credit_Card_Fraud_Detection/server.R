@@ -63,9 +63,11 @@ server <- function(input, output, session) {
   observeEvent(File(), {
     data = File()
     numerical_var = names(data)[sapply(data, is.numeric)]
-    
-    updateSelectInput(session, "response", choices = names(File()))
-    updateSelectInput(session, "explanatory", choices = names(File()))
+    all_names = sapply(File(), class)
+    num_names = names(File())[all_names == "numeric"]
+    # print(num_names)
+    updateSelectInput(session, "response", choices = num_names)
+    updateSelectInput(session, "explanatory", choices = num_names)
     updateSelectInput(session, "var", choices = numerical_var)
     updateSelectInput(session, "target", choices = names(File()))
     
@@ -80,14 +82,22 @@ server <- function(input, output, session) {
     data_clean <- na.omit(data)
     
     # Use aes_string to specify variables and create the plot
-    p <- ggplot(data_clean, aes_string(x = input$explanatory, y = input$response)) +
-      geom_point(alpha = input$shade) +
-      theme_minimal()
+    # p <- ggplot(data_clean, aes_string(x = input$explanatory, y = input$response)) +
+    #   geom_point(alpha = input$shade) +
+    #   theme_minimal()
+    # print(input$response)
+    # print(input$explanatory)
+    # print(data_initial)
+    if (input$explanatory != ""){
+      p = plot(x=data_clean[[input$explanatory]], y = data_clean[[input$response]], xlab = input$explanatory, ylab = input$response)
+    }
+    else(return())
     
     # Add marginal histograms if selected
-    if (input$marginal) {
-      p <- ggMarginal(p, type = "histogram")
-    }
+    # if(input$marginal){
+    #   print(input$marginal)
+    #   p <- ggMarginal(p, type = "histogram")
+    # }
     
     p  # Return the plot
   })
@@ -153,11 +163,7 @@ server <- function(input, output, session) {
     output$data_preview2 <- DT::renderDT({
       datatable(
         data,
-        options = list(
-          scrollY = TRUE,   # Sets the height of the scrollable area
-          scrollX = TRUE,
-          paging = TRUE       # Disables pagination, adjust as needed
-        )
+        options = list(scrollY = TRUE, scrollX = TRUE, paging = TRUE)
       )
     })
   })
