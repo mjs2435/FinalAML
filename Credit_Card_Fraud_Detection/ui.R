@@ -63,7 +63,7 @@ ui <- fluidPage(
              )
     ),# end of Upload Data
     
-    #TODO: make a better design for this tab
+
     #1. different visualization method for catagorical data
     tabPanel("Data Exploration",icon = icon("chart-line"),
              titlePanel("Visualization"),
@@ -107,7 +107,7 @@ ui <- fluidPage(
                sidebarPanel(
                  
                  # Text Input for NA Conversion
-                 textInput("na_text", "Handle Sentinel Value ", value = "XNA"),#TODO:value = ""
+                 textInput("na_text", "Handle Sentinel Value ", value = "XNA"),
                  helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time.Note:Empty entries will be converted to NA directly during model building."),
                  actionButton("submit_na", "Convert"),
                  
@@ -120,7 +120,7 @@ ui <- fluidPage(
                  # Slider for Training Data Percentage
                  sliderInput("data_split", "Training Data (%)", 
                              min = 50, max = 90, value = 70, step = 5, post = "%"),
-                 selectInput("target", "Target (Y)", choices = NULL),#TODO:choices = NULL
+                 selectInput("target", "Target (Y)", choices = NULL),
                  actionButton("submit_split", "Split"),
                  
                  # Selection Input for Imputation Method
@@ -199,21 +199,40 @@ ui <- fluidPage(
              )
     ),
     tabPanel("Model Evaluation", icon = icon("chart-bar"),
-             tabsetPanel(
-               tabPanel("Graphical Evaluation",
-                        tags$h3(strong("Training Result")),
-                        plotOutput("train_plot"),
-                        tags$h3(strong("Testing Result")),
-                        plotOutput("test_plot")
+             titlePanel("Model Evaluation"),
+             sidebarLayout(
+               sidebarPanel(
+                 helpText("todo: adding some description about all the graph produce"),
                ),
-               tabPanel("Numerical Evaluation", 
-                        tags$h3(strong("Training Result")),
-                        verbatimTextOutput("train_metrics"),
-                        tags$h3(strong("Testing Result")),
-                        verbatimTextOutput("test_metrics")
-               ),tabPanel("Variable Importance", plotOutput("vipPlot"))
-
+               mainPanel(
+                 tabsetPanel(
+                   #tabPanel("Resampling Output", textOutput("resampling_output")),
+                   #tabPanel("Tuning Output", textOutput("tuning_output")),
+                   
+                   tabsetPanel(
+                     tabPanel("Graphical Evaluation",
+                              tags$h3(strong("Detailed Training Result")),
+                              plotOutput("roc"),
+                              plotOutput("ses"),
+                              plotOutput("spec"),
+                              plotOutput("rocsd"),
+                              
+                              tags$h3(strong("Training Result")),
+                              plotOutput("train_plot"),
+                              tags$h3(strong("Testing Result")),
+                              plotOutput("test_plot")
+                     ),
+                     tabPanel("Numerical Evaluation", 
+                              tags$h3(strong("Training Set Result")),
+                              verbatimTextOutput("train_metrics"),
+                              tags$h3(strong("Testing Set Result")),
+                              verbatimTextOutput("test_metrics")
+                     ),tabPanel("Variable Importance", plotOutput("vipPlot"))
+                   )
+                 )
+               )
              )
+
     ),
     tags$script(
       '

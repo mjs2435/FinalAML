@@ -121,9 +121,6 @@ server <- function(input, output, session) {
   #--------------------------- Data Preprocessing ---------------------------
   
   reactive_dataset <- reactiveVal(data_initial)
-  
-  # TODO: this is still rendering the original file 
-  
   output$data_preview2 <- DT::renderDT({
     datatable(
       File(),
@@ -587,7 +584,7 @@ server <- function(input, output, session) {
         trControl = trainingControl,
         tuneGrid = data.frame(modelFit$bestTune),
         metric = "ROC",
-        num.trees = 50,#TODO: make this a input 
+        num.trees = input$num_tree,
       )
     }else if (input$model_type =="Support Vector Machine"){
       final_model <-train(
@@ -618,8 +615,17 @@ server <- function(input, output, session) {
     test_conf_matrix <- confusionMatrix(test_pred, transformed_test[[input$target]])
     
     #--------------------------- Model Evaluation ---------------------------
-    output$train_plot <- renderPlot({
+    output$roc <- renderPlot({
       plot(modelFit, metric = "ROC", plotType = "level")
+    })
+    output$ses <- renderPlot({
+      plot(modelFit, metric = "Sens", plotType = "level")
+    })
+    output$spec <- renderPlot({
+      plot(modelFit, metric = "Spec", plotType = "level")
+    })
+    output$rocsd <- renderPlot({
+      plot(modelFit, metric = "ROCSD", plotType = "level")
     })
     
     output$train_metrics <- renderText({
