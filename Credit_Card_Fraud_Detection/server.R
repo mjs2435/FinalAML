@@ -20,6 +20,7 @@ library(ranger)
 library(shinyjs)
 library(xgboost)
 library("kernlab")
+library(vip)
 
 data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
 
@@ -352,6 +353,7 @@ server <- function(input, output, session) {
              selectizeInput("mtry", "mtry (Number of Variables)", choices = as.character(1:20), options = list(create = TRUE), multiple = TRUE),
              selectInput("splitrule", "Splitting Rule", choices = c("Gini" = "gini", "ExtraTrees" = "extratrees", "Hellinger" = "hellinger")),
              selectizeInput("min_node_size", "Minimum Node Size", choices = as.character(1:10), options = list(create = TRUE), multiple = TRUE),
+             numericInput("num_tree", "Number of Trees", min = 1, max = 500, value = 50)
            ),
            "Support Vector Machine" = tagList(
              selectInput("kernel_type", "Kernel Type", choices = c("Linear" = "linear", "Polynomial" = "polynomial", "RBF" = "rbf")),
@@ -552,9 +554,8 @@ server <- function(input, output, session) {
         trControl = trainingControl,
         tuneGrid = tuningParams,
         metric = "ROC",
-        num.trees = 50,#TODO: make this a input 
+        num.trees = input$num_tree,
       )
-      showNotification(paste("Training Complete."),type = "message")
     }else if (input$model_type =="Support Vector Machine"){
       modelFit <-train(
         formula,
@@ -565,7 +566,6 @@ server <- function(input, output, session) {
         tuneGrid = tuningParams,
         metric = "ROC"
       )
-      showNotification(paste("Training Complete."),type = "message")
     }else {
       modelFit <-train(
             formula,
@@ -575,12 +575,10 @@ server <- function(input, output, session) {
             tuneGrid = tuningParams,
             metric = "ROC"
       )
-      showNotification(paste("Training Complete."),type = "message")
     }
+    
     ######## Final Model ########
     # Best model parameters with names
-
-    
     if(input$model_type =="Random Forest"){
       final_model <- train(
         formula,
@@ -591,7 +589,6 @@ server <- function(input, output, session) {
         metric = "ROC",
         num.trees = 50,#TODO: make this a input 
       )
-      showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
     }else if (input$model_type =="Support Vector Machine"){
       final_model <-train(
         formula,
@@ -602,7 +599,6 @@ server <- function(input, output, session) {
         tuneGrid = data.frame(modelFit$bestTune),
         metric = "ROC"
       )
-      showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
     }else {
       final_model <-train(
         formula,
@@ -612,37 +608,20 @@ server <- function(input, output, session) {
         tuneGrid = data.frame(modelFit$bestTune),
         metric = "ROC"
       )
-      showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
     }
-
+    
+    showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
     ######## Visulize Training process ########
-    
-    
-    
-  
     train_pred <- predict(final_model, newdata = transformed_train)
     test_pred <- predict(final_model, newdata = transformed_test)
-    #train_pred_factor <- factor(train_pred, levels = levels(transformed_train$TARGET))
     train_conf_matrix <- confusionMatrix(train_pred, transformed_train[[input$target]])
     test_conf_matrix <- confusionMatrix(test_pred, transformed_test[[input$target]])
     
     #--------------------------- Model Evaluation ---------------------------
-    # Graphical evaluation (example with ROC curve)
-    # output$train_plot <- renderPlot({
-    #   train_roc <- roc(response = transformed_train()$TARGET, predictor = train_pred[,2])
-    #   plot(train_roc, main = "ROC Curve - Training Data")
-    # })
-    # output$test_plot <- renderPlot({
-    #   test_roc <- roc(response = transformed_test()$TARGET, predictor = test_pred[,2])
-    #   plot(test_roc, main = "ROC Curve - Testing Data")
-    # })
+    output$train_plot <- renderPlot({
+      plot(modelFit, metric = "ROC", plotType = "level")
+    })
     
-    # Numerical evaluation
-    # output$train_metrics <- renderDataTable({
-    #   train_data <- as.data.frame(transformed_train())
-    #   train_pred <- predict(finalModel, data = train_data, type = "response")
-    #   confusionMatrix(data = factor(train_pred), reference = factor(train_data$TARGET))
-    # })
     output$train_metrics <- renderText({
       train_output <- capture.output(print(train_conf_matrix))
       paste(train_output, collapse = "\n")
@@ -653,37 +632,8 @@ server <- function(input, output, session) {
       paste(test_output, collapse = "\n")
       
     })
-    # # Model summary
-    # output$modelSummary <- renderText({
-    #   summary(modelFit$finalModel)
-    # })
-    # ggplot(modelFit)
-  })
-    
-  # observeEvent(input$train_model, {
-  #   transformed_train = transformed_train()
-  # 
-  #   # Define training control conditionally
-  #   trainingControl <- switch(input$resample_method,
-  #                             "Cross-validation" = trainControl(method = "cv", number = input$fold,classProbs = TRUE, summaryFunction = twoClassSummary),
-  #                             "Repeated CV" = trainControl(method = "repeatedcv", number = input$fold, repeats = input$repeats,classProbs = TRUE, summaryFunction = twoClassSummary),
-  #                             "Bootstrap" = trainControl(method = "boot", number = input$n_boot,classProbs = TRUE, summaryFunction = twoClassSummary),
-  #                             trainControl(method = "none")  # Default fallback
-  #   )
-  # 
-
-  # 
-  #   # Get tuning parameters dynamically based on user input
-
-  # 
-  # 
-
-  # 
-  #   # Output the model's training results
-  #   output$training_result <- DT::renderDT({
-  #     datatable(data.frame(Predictions = predict(modelFit, newdata = transformed_train)))
-  #   })
-  # 
-  # })
-  
+    output$vipPlot <- renderPlot({
+      vip(final_model, num_features = 10)
+    })
+  })#end of train model
 }# end of server

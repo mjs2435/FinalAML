@@ -186,7 +186,7 @@ ui <- fluidPage(
                              choices = c("Random Forest", "Support Vector Machine", "XGBoost", "Artificial Neural Networks"),
                              selected = "Random Forest"),
                  uiOutput("tuning_params"),
-                 actionButton("train_model", "Start Training", icon = icon("play"),onclick = "$(tab).removeClass('disabled')")
+                 actionButton("train_model", "Start Training", icon = icon("play"))
                ),
                mainPanel(
                  tabsetPanel(
@@ -200,25 +200,26 @@ ui <- fluidPage(
     ),
     tabPanel("Model Evaluation", icon = icon("chart-bar"),
              tabsetPanel(
-               # tabPanel("Graphical Evaluation", 
-               #          tags$h3(strong("Training Result")),
-               #          plotOutput("train_plot"),
-               #          tags$h3(strong("Testing Result")),
-               #          plotOutput("test_plot")
-               # ),
+               tabPanel("Graphical Evaluation",
+                        tags$h3(strong("Training Result")),
+                        plotOutput("train_plot"),
+                        tags$h3(strong("Testing Result")),
+                        plotOutput("test_plot")
+               ),
                tabPanel("Numerical Evaluation", 
                         tags$h3(strong("Training Result")),
                         verbatimTextOutput("train_metrics"),
                         tags$h3(strong("Testing Result")),
                         verbatimTextOutput("test_metrics")
-               )
+               ),tabPanel("Variable Importance", plotOutput("vipPlot"))
+
              )
     ),
     tags$script(
       '
-    var trainingTab = $(\'a[data-value="Training"]\').parent().addClass("disabled");
+    var tab = $(\'a[data-value="Training"]\').parent().addClass("disabled");
     $(function(){
-      $(trainingTab.parent()).on("click", "li.disabled", function(e) {
+      $(tab.parent()).on("click", "li.disabled", function(e) {
         e.preventDefault();
         return false;
       });
