@@ -76,11 +76,11 @@ ui <- fluidPage(
                    sliderInput("shade", "Transparency Rate", min = 0, max = 1, value = 0.5, step = 0.1),
                    # checkboxInput("marginal", "Marginal Distributions", value = FALSE)
                  ),
-                 conditionalPanel(
-                   condition = "input.tabSelected == 'Numeric Summary'",
-                   h4("Understanding Numeric Summary"),
-                   helpText("The numeric summary provides statistical measures such as mean, median, mode, and others for the selected response variable. Choose a response variable from the dropdown to view its statistics.")
-                 ),
+                 # conditionalPanel(
+                 #   condition = "input.tabSelected == 'Numeric Summary'",
+                 #   h4("Understanding Numeric Summary"),
+                 #   helpText("The numeric summary provides statistical measures such as mean, median, mode, and others for the selected response variable. Choose a response variable from the dropdown to view its statistics.")
+                 # ),
                  conditionalPanel(
                    condition = "input.tabSelected == 'Histogram'",
                    selectInput("var", "Variable", choices = NULL),
@@ -93,7 +93,8 @@ ui <- fluidPage(
                  tabsetPanel(id = "tabSelected",
                              tabPanel("Scatterplot", plotOutput("plot1")),
                              tabPanel("Histogram", plotOutput("plot2")),
-                             tabPanel("Numeric Summary", dataTableOutput("result1"))
+                             #tabPanel("Pichar", plotOutput("plot3")),
+                             #tabPanel("Numeric Summary", dataTableOutput("result1"))
 
                  )
                )
@@ -134,6 +135,7 @@ ui <- fluidPage(
                  #helpText("Choose an imputation method to handle missing data in the dataset."),
                  
                  # Checkboxes for Additional Preprocessing Options
+                 
                  #checkboxInput("remove_outliers", "Remove Outliers", value = FALSE),
                  checkboxInput("normalize_data", "Normalize Variables", value = TRUE),
                  checkboxInput("standardize_data", "Standardize Variables", value = TRUE),
@@ -149,7 +151,7 @@ ui <- fluidPage(
                  #      value = 50
                  #    )
                  # }
-                 actionButton("submit_pre", "Apply"),
+                 actionButton("submit_pre", "Apply",onclick = "$(tab).removeClass('disabled')"),
                  
                  
                ),
@@ -184,7 +186,7 @@ ui <- fluidPage(
                              choices = c("Random Forest", "Support Vector Machine", "XGBoost", "Artificial Neural Networks"),
                              selected = "Random Forest"),
                  uiOutput("tuning_params"),
-                 actionButton("train_model", "Start Training", icon = icon("play"))
+                 actionButton("train_model", "Start Training", icon = icon("play"),onclick = "$(tab).removeClass('disabled')")
                ),
                mainPanel(
                  tabsetPanel(
@@ -212,7 +214,17 @@ ui <- fluidPage(
                )
              )
     ),
-    selected = "Overview"
+    tags$script(
+      '
+    var trainingTab = $(\'a[data-value="Training"]\').parent().addClass("disabled");
+    $(function(){
+      $(trainingTab.parent()).on("click", "li.disabled", function(e) {
+        e.preventDefault();
+        return false;
+      });
+    });
+    '
+    )
   )
 )
 #

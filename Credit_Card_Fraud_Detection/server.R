@@ -554,7 +554,7 @@ server <- function(input, output, session) {
         metric = "ROC",
         num.trees = 50,#TODO: make this a input 
       )
-      showNotification(paste("Training Complete."),type = "message",duration = NULL)
+      showNotification(paste("Training Complete."),type = "message")
     }else if (input$model_type =="Support Vector Machine"){
       modelFit <-train(
         formula,
@@ -565,7 +565,7 @@ server <- function(input, output, session) {
         tuneGrid = tuningParams,
         metric = "ROC"
       )
-      showNotification(paste("Training Complete."),type = "message",duration = NULL)
+      showNotification(paste("Training Complete."),type = "message")
     }else {
       modelFit <-train(
             formula,
@@ -575,7 +575,7 @@ server <- function(input, output, session) {
             tuneGrid = tuningParams,
             metric = "ROC"
       )
-      showNotification(paste("Training Complete."),type = "message",duration = NULL)
+      showNotification(paste("Training Complete."),type = "message")
     }
     ######## Final Model ########
     # Best model parameters with names
