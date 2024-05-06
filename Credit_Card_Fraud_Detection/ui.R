@@ -126,9 +126,8 @@ ui <- fluidPage(
                  selectInput("impute_method", "Select Imputation Method",
                              choices = c(
                                          "KNN Imputation" = "knn",
-                                         "Mean Imputation" = "mean",
-                                         "Median Imputation" = "median",
-                                         "Mode Imputation" = "mode",
+                                         "Mean & Mode Imputation" = "mean_mode",
+                                         "Median & Median Imputation" = "median_mode",
                                          "Drop Observations with NAs" = "drop_na",
                                          "None" = "none")),
                  
@@ -198,12 +197,12 @@ ui <- fluidPage(
     ),
     tabPanel("Model Evaluation", icon = icon("chart-bar"),
              tabsetPanel(
-               tabPanel("Graphical Evaluation", 
-                        tags$h3(strong("Training Result")),
-                        plotOutput("train_plot"),
-                        tags$h3(strong("Testing Result")),
-                        plotOutput("test_plot")
-               ),
+               # tabPanel("Graphical Evaluation", 
+               #          tags$h3(strong("Training Result")),
+               #          plotOutput("train_plot"),
+               #          tags$h3(strong("Testing Result")),
+               #          plotOutput("test_plot")
+               # ),
                tabPanel("Numerical Evaluation", 
                         tags$h3(strong("Training Result")),
                         verbatimTextOutput("train_metrics"),

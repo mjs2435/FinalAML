@@ -281,13 +281,15 @@ server <- function(input, output, session) {
     if (input$remove_zero_var) {
       blueprint <- blueprint %>% step_nzv(all_predictors())
       pre_message <- paste(pre_message, "Remove near zero variance predictors,")
+    }else {
+      blueprint <- blueprint %>% step_zv(all_predictors())
+      pre_message <- paste(pre_message, "Remove equal to zero variance predictors,")
     }
     
     # Imputation steps and messages
     blueprint <- switch(input$impute_method,
-                        "mean" = { blueprint <-blueprint %>% step_impute_mean(all_numeric_predictors()); pre_message <- paste(pre_message, "Mean imputation for numeric predictors,"); blueprint },
-                        "median" = { blueprint <-blueprint %>% step_impute_median(all_numeric_predictors()); pre_message <- paste(pre_message, "Median imputation for numeric predictors,"); blueprint },
-                        "mode" = { blueprint <-blueprint %>% step_impute_mode(all_nominal_predictors()); pre_message <- paste(pre_message, "Mode imputation for nominal predictors,"); blueprint },
+                        "mean_mode" = { blueprint <-blueprint %>% step_impute_mean(all_numeric_predictors())%>%step_impute_mode(all_nominal_predictors()); pre_message <- paste(pre_message, "Mean imputation for numeric predictors,Mode imputation for nominal predictors,"); blueprint },
+                        "median_mode" = { blueprint <-blueprint %>% step_impute_median(all_numeric_predictors()) %>% step_impute_mode(all_nominal_predictors()); pre_message <- paste(pre_message, "Median imputation for numeric predictors,Mode imputation for nominal predictors,"); blueprint },
                         "knn" = { blueprint <-blueprint %>% step_impute_knn(all_predictors()); pre_message <- paste(pre_message, "KNN imputation for all predictors,"); blueprint },
                         "drop_na" = { train_data <<- na.omit(train_data); test_data <<- na.omit(test_data); pre_message <- paste(pre_message, "Drop all rows with NAs,"); blueprint },
                         blueprint # Default case to handle 'none' or unexpected input
@@ -535,7 +537,7 @@ server <- function(input, output, session) {
         num.trees = 50,#TODO: make this a input 
       )
       showNotification(paste("Training Complete."),type = "message",duration = NULL)
-    }else if (input$model_type =="SVM"){
+    }else if (input$model_type =="Support Vector Machine"){
       modelFit <-train(
         formula,
         data = transformed_train, 
@@ -579,7 +581,7 @@ server <- function(input, output, session) {
         num.trees = 50,#TODO: make this a input 
       )
       showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
-    }else if (input$model_type =="SVM"){
+    }else if (input$model_type =="Support Vector Machine"){
       final_model <-train(
         formula,
         data = transformed_train, 
