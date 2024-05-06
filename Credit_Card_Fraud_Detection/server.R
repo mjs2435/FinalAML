@@ -18,6 +18,8 @@ library(tidymodels)
 library(tidyverse)
 library(ranger)
 library(shinyjs)
+library(xgboost)
+library("kernlab")
 
 data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
 
