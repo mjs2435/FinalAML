@@ -153,21 +153,7 @@ server <- function(input, output, session) {
       )
     )
   })
-  
 
-  
-  
-  observeEvent(input$submit_na, {
-
-  })
-  
-  observeEvent(input$submit_drop, {
-
-  })
-  
-  observeEvent(input$submit_split, {
-
-  })
   
   # Render the training data table
   output$data_preview_train <- renderDT({

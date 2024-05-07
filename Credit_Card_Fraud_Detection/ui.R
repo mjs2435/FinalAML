@@ -73,13 +73,7 @@ ui <- fluidPage(
                    condition = "input.tabSelected == 'Scatterplot'",
                    selectInput("response", "Response Variable (Y)", choices = NULL),
                    selectInput("explanatory", "Explanatory Variable (X)", choices = NULL),
-                   # checkboxInput("marginal", "Marginal Distributions", value = FALSE)
                  ),
-                 # conditionalPanel(
-                 #   condition = "input.tabSelected == 'Numeric Summary'",
-                 #   h4("Understanding Numeric Summary"),
-                 #   helpText("The numeric summary provides statistical measures such as mean, median, mode, and others for the selected response variable. Choose a response variable from the dropdown to view its statistics.")
-                 # ),
                  conditionalPanel(
                    condition = "input.tabSelected == 'Histogram'",
                    selectInput("var", "Variable", choices = NULL),
@@ -92,8 +86,6 @@ ui <- fluidPage(
                  tabsetPanel(id = "tabSelected",
                              tabPanel("Scatterplot", plotOutput("plot1")),
                              tabPanel("Histogram", plotOutput("plot2")),
-                             #tabPanel("Pichar", plotOutput("plot3")),
-                             #tabPanel("Numeric Summary", dataTableOutput("result1"))
 
                  )
                )
@@ -138,16 +130,7 @@ ui <- fluidPage(
                  checkboxInput("remove_zero_var", "Remove Near Zero Variance Variables", value = TRUE),
                  checkboxInput("remove_zero_var", "Remove Near Zero Variance Variables", value = TRUE),
                  checkboxInput("pca", "Principal Component Analysis", value = TRUE),
-                 # if (input$pca == 1) {
-                 #    sliderInput(
-                 #      "sliderOne",
-                 #      "Choose your value",
-                 #      min = 0,
-                 #      max = 100,
-                 #      value = 50
-                 #    )
-                 # }
-                 actionButton("submit_pre", "Apply",onclick = "$(tab).removeClass('disabled')"),
+                 actionButton("submit_pre", "Apply", onclick = "$(tab).removeClass('disabled')"),
                  
                  
                ),
@@ -161,6 +144,17 @@ ui <- fluidPage(
                  tags$h3("Testing Data", style = "font-weight: bold"),
                  dataTableOutput("data_preview_test")
                )
+             ),
+              tags$script(
+                 '
+                 var tab = $(\'a[data-value="Training"]\').parent().addClass("disabled");
+                 $(function(){
+                   $(tab.parent()).on("click", "li.disabled", function(e) {
+                     e.preventDefault();
+                     return false;
+                   });
+                 });
+                 '
              )
     ),
     
@@ -182,16 +176,24 @@ ui <- fluidPage(
                              choices = c("Random Forest", "Support Vector Machine", "XGBoost", "Artificial Neural Networks"),
                              selected = "Random Forest"),
                  uiOutput("tuning_params"),
-                 actionButton("train_model", "Start Training", icon = icon("play")),
+                 actionButton("train_model", "Start Training", icon = icon("play"), onclick = "$(tab_eval).removeClass('disabled')"),
                ),
                mainPanel(
                  tabsetPanel(
-                   #tabPanel("Resampling Output", textOutput("resampling_output")),
-                   #tabPanel("Tuning Output", textOutput("tuning_output")),
-                   
                    tabPanel("Training result", uiOutput("accuracyPlot"),verbatimTextOutput("bestAccuracy"),verbatimTextOutput("bestParameters"), verbatimTextOutput("modelSummary"))
                  )
                )
+             ),          
+             tags$script(
+               '
+               var tab_eval = $(\'a[data-value="Model Evaluation"]\').parent().addClass("disabled");
+               $(function(){
+                 $(tab_eval.parent()).on("click", "li.disabled", function(e) {
+                   e.preventDefault();
+                   return false;
+                 });
+               });
+               '
              )
     ),
     tabPanel("Model Evaluation", icon = icon("chart-bar"),
@@ -202,9 +204,6 @@ ui <- fluidPage(
                ),
                mainPanel(
                  tabsetPanel(
-                   #tabPanel("Resampling Output", textOutput("resampling_output")),
-                   #tabPanel("Tuning Output", textOutput("tuning_output")),
-                   
                    tabsetPanel(
                      tabPanel("Graphical Evaluation",
                               tags$h3(strong("Detailed Training Result")),
@@ -229,17 +228,6 @@ ui <- fluidPage(
                )
              )
 
-    ),
-    tags$script(
-      '
-    var tab = $(\'a[data-value="Training"]\').parent().addClass("disabled");
-    $(function(){
-      $(tab.parent()).on("click", "li.disabled", function(e) {
-        e.preventDefault();
-        return false;
-      });
-    });
-    '
     )
   )
 )
