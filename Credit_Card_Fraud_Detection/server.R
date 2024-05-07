@@ -31,6 +31,12 @@ transformed_train <- reactiveVal()
 transformed_test <- reactiveVal()
 
 finalModel<- reactiveVal()
+
+prob_yes <- function(object, newdata) {                        # wrapper function for SVM VIP below
+  
+  predict(object, newdata = newdata, type = "prob")[, "Fraud"]
+  
+}
 server <- function(input, output, session) {
   plan(multisession)
   
@@ -641,7 +647,15 @@ server <- function(input, output, session) {
       
     })
     output$vipPlot <- renderPlot({
-      vip(final_model, num_features = 10)
+      if(input$model_type == "Support Vector Machine"){
+        vip(final_model, method = "permute", train = transformed_train, target = input$target,
+            
+            metric = "roc_auc", reference_class = "Fraud", pred_wrapper = prob_yes)
+      } else {
+        vip(final_model, num_features = 10)
+      }
+      
+      
     })
   })#end of train model
 }# end of server
