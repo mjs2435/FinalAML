@@ -37,6 +37,18 @@ prob_yes <- function(object, newdata) {                        # wrapper functio
   predict(object, newdata = newdata, type = "prob")[, "Fraud"]
   
 }
+
+one_dist_val <- function(grid) {
+  unique_ls = sapply(grid, n_distinct)
+  if (sum(unique_ls) - max(unique_ls) == length(unique_ls) - 1){
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+  
+  
+}
+
 server <- function(input, output, session) {
   plan(multisession)
   
@@ -560,6 +572,7 @@ server <- function(input, output, session) {
         tuneGrid = tuningParams,
         metric = "ROC",
         num.trees = input$num_tree,
+        importance = 'impurity'
       )
     }else if (input$model_type =="Support Vector Machine"){
       modelFit <-train(
@@ -593,6 +606,8 @@ server <- function(input, output, session) {
         tuneGrid = data.frame(modelFit$bestTune),
         metric = "ROC",
         num.trees = input$num_tree,
+        importance = "impurity"
+        
       )
     }else if (input$model_type =="Support Vector Machine"){
       final_model <-train(
@@ -624,16 +639,34 @@ server <- function(input, output, session) {
     
     #--------------------------- Model Evaluation ---------------------------
     output$roc <- renderPlot({
-      plot(modelFit, metric = "ROC", plotType = "level")
+      if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+        ggplot(modelFit, metric = "ROC")
+      } else {
+        plot(modelFit, metric = "ROC", plotType = "level")
+      }
+      
+      
     })
     output$ses <- renderPlot({
-      plot(modelFit, metric = "Sens", plotType = "level")
+      if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+        ggplot(modelFit, metric = "Sens")
+      } else {
+        plot(modelFit, metric = "Sens", plotType = "level")
+      }
     })
     output$spec <- renderPlot({
-      plot(modelFit, metric = "Spec", plotType = "level")
+      if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+        ggplot(modelFit, metric = "Spec")
+      } else {
+        plot(modelFit, metric = "Spec", plotType = "level")
+      }
     })
     output$rocsd <- renderPlot({
-      plot(modelFit, metric = "ROCSD", plotType = "level")
+      if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+        ggplot(modelFit, metric = "Spec")
+      } else {
+        plot(modelFit, metric = "Spec", plotType = "level")
+      }
     })
     
     output$train_metrics <- renderText({
@@ -649,9 +682,9 @@ server <- function(input, output, session) {
     output$vipPlot <- renderPlot({
       if(input$model_type == "Support Vector Machine"){
         vip(final_model, method = "permute", train = transformed_train, target = input$target,
-            
             metric = "roc_auc", reference_class = "Fraud", pred_wrapper = prob_yes)
-      } else {
+      }
+      else {
         vip(final_model, num_features = 10)
       }
       
