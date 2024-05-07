@@ -34,7 +34,7 @@ finalModel<- reactiveVal()
 
 prob_yes <- function(object, newdata) {                        # wrapper function for SVM VIP below
   
-  predict(object, newdata = newdata, type = "prob")[, "Fraud"]
+  predict(object, newdata = newdata, type = "prob")[, "Positive"]
   
 }
 
@@ -84,11 +84,17 @@ server <- function(input, output, session) {
     numerical_var = names(data)[sapply(data, is.numeric)]
     all_names = sapply(File(), class)
     num_names = names(File())[all_names == "numeric"]
-    # print(num_names)
+    #only make target options with binary classification
+    
+    count_unique = sapply(File(), n_distinct)
+    bin_class = names(File())[count_unique == 2]
+    
+    
+    
     updateSelectInput(session, "response", choices = num_names)
     updateSelectInput(session, "explanatory", choices = num_names)
     updateSelectInput(session, "var", choices = numerical_var)
-    updateSelectInput(session, "target", choices = names(File()))
+    updateSelectInput(session, "target", choices = bin_class)
     
   })
   
@@ -279,10 +285,12 @@ server <- function(input, output, session) {
     train_data <- data_train()
     test_data <- data_test()
     
-    train_data[[input$target]]<- factor(train_data[[input$target]], levels = c("0", "1"),
-                       labels = c("Fraud", "NonFraud"))
-    test_data[[input$target]] <- factor(test_data[[input$target]], levels = c("0", "1"),
-                                labels = c("Fraud", "NonFraud"))
+    two_levels = unique(train_data[[input$target]])
+    
+    train_data[[input$target]]<- factor(train_data[[input$target]], levels = two_levels,
+                       labels = c("Negative", "Positive"))
+    test_data[[input$target]] <- factor(test_data[[input$target]], levels = two_levels,
+                                labels = c("Negative", "Positive"))
     
     # Start with checking data availability
     if (is.null(train_data) || is.null(test_data)) {
@@ -328,7 +336,6 @@ server <- function(input, output, session) {
     }
     
     if (input$pca){
-      # print("In the PCA category")
       blueprint <- blueprint %>% step_pca(all_numeric_predictors()) 
       pre_message <- paste(pre_message, "Performed PCA on all numeric predictors,")
       
@@ -341,7 +348,6 @@ server <- function(input, output, session) {
     
     transformed_train<-(bake(blueprint_prep, new_data = train_data))
     transformed_test<-(bake(blueprint_prep, new_data = test_data))
-    # print(head(transformed_train))
     # Removing trailing comma and space
     pre_message <- sub(",\\s*$", "", pre_message)
     
@@ -685,7 +691,7 @@ server <- function(input, output, session) {
     output$vipPlot <- renderPlot({
       if(input$model_type == "Support Vector Machine"){
         vip(final_model, method = "permute", train = transformed_train, target = input$target,
-            metric = "roc_auc", reference_class = "Fraud", pred_wrapper = prob_yes)
+            metric = "roc_auc", reference_class = "Positive", pred_wrapper = prob_yes)
       }
       else {
         vip(final_model, num_features = 10)

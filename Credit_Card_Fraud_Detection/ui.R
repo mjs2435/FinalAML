@@ -212,10 +212,10 @@ ui <- fluidPage(
                               plotOutput("spec"),
                               plotOutput("rocsd"),
                               
-                              tags$h3(strong("Training Result")),
-                              plotOutput("train_plot"),
-                              tags$h3(strong("Testing Result")),
-                              plotOutput("test_plot")
+                              # tags$h3(strong("Training Result")),
+                              # plotOutput("train_plot"),
+                              # tags$h3(strong("Testing Result")),
+                              # plotOutput("test_plot")
                      ),
                      tabPanel("Numerical Evaluation", 
                               tags$h3(strong("Training Set Result")),
