@@ -73,7 +73,6 @@ ui <- fluidPage(
                    condition = "input.tabSelected == 'Scatterplot'",
                    selectInput("response", "Response Variable (Y)", choices = NULL),
                    selectInput("explanatory", "Explanatory Variable (X)", choices = NULL),
-                   sliderInput("shade", "Transparency Rate", min = 0, max = 1, value = 0.5, step = 0.1),
                    # checkboxInput("marginal", "Marginal Distributions", value = FALSE)
                  ),
                  # conditionalPanel(

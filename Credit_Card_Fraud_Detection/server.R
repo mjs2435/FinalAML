@@ -86,9 +86,6 @@ server <- function(input, output, session) {
     # p <- ggplot(data_clean, aes_string(x = input$explanatory, y = input$response)) +
     #   geom_point(alpha = input$shade) +
     #   theme_minimal()
-    # print(input$response)
-    # print(input$explanatory)
-    # print(data_initial)
     if (input$explanatory != ""){
       p = plot(x=data_clean[[input$explanatory]], y = data_clean[[input$response]], xlab = input$explanatory, ylab = input$response)
     }
@@ -96,7 +93,6 @@ server <- function(input, output, session) {
     
     # Add marginal histograms if selected
     # if(input$marginal){
-    #   print(input$marginal)
     #   p <- ggMarginal(p, type = "histogram")
     # }
     
@@ -105,8 +101,16 @@ server <- function(input, output, session) {
   
   # Histogram plot
   plot2 <- eventReactive(input$click, {
+    data_to_plot = File()[[input$var]]
+    data_no_na = data_to_plot[!is.na(data_to_plot)]
+    if (length(data_no_na) == 0 | sd(data_no_na) == 0){
+      bw = 1
+      
+    } else {
+      bw = diff(range(data_no_na) / input$bins)
+    }
     ggplot(data = File(), aes_string(x = input$var)) +
-      geom_histogram(binwidth = diff(range(File()[[input$var]]) / input$bins), fill = input$color, color = "black") +
+      geom_histogram(binwidth = bw, fill = input$color, color = "black") +
       labs(x = input$var, y = "Frequency", title = "Histogram") +
       theme_minimal()
   })
@@ -240,8 +244,6 @@ server <- function(input, output, session) {
   
   # Render the test data table
   output$data_preview_test <- renderDT({
-    print("Outputting Reactive Element for Test")
-    print(head(data_test()))
     datatable(
       transformed_test(),  # Use the reactive getter to access the data
       options = list(
@@ -257,9 +259,9 @@ server <- function(input, output, session) {
     test_data <- data_test()
     
     train_data[[input$target]]<- factor(train_data[[input$target]], levels = c("0", "1"),
-                       labels = c("Faud", "NonFaud"))
+                       labels = c("Fraud", "NonFraud"))
     test_data[[input$target]] <- factor(test_data[[input$target]], levels = c("0", "1"),
-                                labels = c("Faud", "NonFaud"))
+                                labels = c("Fraud", "NonFraud"))
     
     # Start with checking data availability
     if (is.null(train_data) || is.null(test_data)) {
