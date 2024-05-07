@@ -108,20 +108,17 @@ ui <- fluidPage(
                  # Text Input for NA Conversion
                  textInput("na_text", "Handle Sentinel Value ", value = "XNA"),
                  helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time.Note:Empty entries will be converted to NA directly during model building."),
-                 actionButton("submit_na", "Convert"),
                  
                  # Checkbox for Dropping Features with High Missing Values
                  sliderInput("drop_features", 
                              "Threshold for Dropping Features (%)", 
                              min = 30, max = 100, value = 30, step = 10, 
                              post = "%"),
-                 actionButton("submit_drop", "Drop"),
                  # Slider for Training Data Percentage
                  sliderInput("data_split", "Training Data (%)", 
                              min = 50, max = 90, value = 70, step = 5, post = "%"),
                  selectInput("target", "Target (Y)", choices = NULL),
-                 actionButton("submit_split", "Split"),
-                 
+
                  # Selection Input for Imputation Method
                  selectInput("impute_method", "Select Imputation Method",
                              choices = c(
@@ -185,7 +182,7 @@ ui <- fluidPage(
                              choices = c("Random Forest", "Support Vector Machine", "XGBoost", "Artificial Neural Networks"),
                              selected = "Random Forest"),
                  uiOutput("tuning_params"),
-                 actionButton("train_model", "Start Training", icon = icon("play"))
+                 actionButton("train_model", "Start Training", icon = icon("play")),
                ),
                mainPanel(
                  tabsetPanel(

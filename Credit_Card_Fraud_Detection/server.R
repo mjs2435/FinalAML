@@ -158,6 +158,44 @@ server <- function(input, output, session) {
   
   
   observeEvent(input$submit_na, {
+
+  })
+  
+  observeEvent(input$submit_drop, {
+
+  })
+  
+  observeEvent(input$submit_split, {
+
+  })
+  
+  # Render the training data table
+  output$data_preview_train <- renderDT({
+    
+    datatable(
+      transformed_train(),  # Use the reactive getter to access the data
+      options = list(
+        scrollY = "200px",   # Sets the height of the scrollable area
+        scrollX = TRUE,
+        paging = TRUE        # Enables pagination
+      )
+    )
+  })
+  
+  # Render the test data table
+  output$data_preview_test <- renderDT({
+    datatable(
+      transformed_test(),  # Use the reactive getter to access the data
+      options = list(
+        scrollY = "200px",   # Sets the height of the scrollable area
+        scrollX = TRUE,
+        paging = TRUE        # Enables pagination
+      )
+    )
+  })
+  
+  observeEvent(input$submit_pre, {
+    ##### do na stuff
     req(input$na_text) # placeholder:unable to handle empty string at this moment
     value_to_convert <- input$na_text  # Use the text input directly
     data <- reactive_dataset()# Access the current dataset
@@ -186,9 +224,11 @@ server <- function(input, output, session) {
         options = list(scrollY = TRUE, scrollX = TRUE, paging = TRUE)
       )
     })
-  })
-  
-  observeEvent(input$submit_drop, {
+    
+    ##############################
+    
+    # do drop stuff #
+    
     data <- reactive_dataset()
     
     drop_message <- ""
@@ -223,9 +263,9 @@ server <- function(input, output, session) {
         )
       )
     })
-  })
-  
-  observeEvent(input$submit_split, {
+    ####################
+    
+    # do split stuff #
     data <- reactive_dataset()  # Fetch the current dataset
     
     # Ensure that there is data to split
@@ -245,34 +285,11 @@ server <- function(input, output, session) {
     # Display the selected percentage of training data
     split_message <- sprintf("Selected training data percentage: %d%%", input$data_split)
     output$data_split_message <- renderText({ split_message })
-  })
-  
-  # Render the training data table
-  output$data_preview_train <- renderDT({
     
-    datatable(
-      transformed_train(),  # Use the reactive getter to access the data
-      options = list(
-        scrollY = "200px",   # Sets the height of the scrollable area
-        scrollX = TRUE,
-        paging = TRUE        # Enables pagination
-      )
-    )
-  })
-  
-  # Render the test data table
-  output$data_preview_test <- renderDT({
-    datatable(
-      transformed_test(),  # Use the reactive getter to access the data
-      options = list(
-        scrollY = "200px",   # Sets the height of the scrollable area
-        scrollX = TRUE,
-        paging = TRUE        # Enables pagination
-      )
-    )
-  })
-  
-  observeEvent(input$submit_pre, {
+    ##############################
+    
+    # do preprocessing stuff
+    
     train_data <- data_train()
     test_data <- data_test()
     
