@@ -32,7 +32,15 @@ ui <- fluidPage(
                p("R Packages: shiny, caret, tidymodels, ggplot2, DT, among others, providing a robust backend for data manipulation and modeling."),
                p("Interactive UI: Leverages shinyjs for enhanced JavaScript interactions within the R Shiny environment."),
                h3("Target Audience"),
-               p("Data Science practitioners and educators looking for a flexible tool to teach, learn, and apply machine learning concepts effectively.")
+               p("Data Science practitioners and educators looking for a flexible tool to teach, learn, and apply machine learning concepts effectively."),
+               h3("FAQ"),
+               h4("What type of analysis does this website do? And how do I format my dataset to process it?"),
+               p("Only binary classification is supported. To format your dataset, simply have your target column contain exactly two distinct values and mark your response as such on the Data Preprocessing page."),
+               h4("I can't access the model training tab! Is the website broken?"),
+               p("Probably, but not because of that. You will first need to go to the Data Preprocessing tab and click Apply after adding useful changes. The same applies for the Model Evaluation after training."),
+               h4("I am not seeing any training plots for my choices of hyperparameters. How can I visualize my results?"),
+               p("First, check that you have entered more than one set of hyperparameters for tuning. This can be done through the drop-down menus of each respective factor. Also confirm that less than 4 have been chosen to be tuned, especially on XGBoost.")
+               
              )
     ),# end of Overview
     
@@ -43,7 +51,8 @@ ui <- fluidPage(
                  selectInput("dataset", "Dataset:", choices = c("Credit Card Fraud", "Upload your own file")),
                  conditionalPanel(
                    condition = "input.dataset == 'Upload your own file'",
-                   fileInput("file", "Select your files:", accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
+                   fileInput("file", "Select your files:", accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")), onclick = "$(tab).addClass('disabled')
+                                                                                                                                                $(tab_eval).addClass('disabled')"
                  ),
                  helpText("This page allows you to upload data. You have 2 options for uploading data:",
                           tags$br(),tags$br(),
@@ -99,7 +108,7 @@ ui <- fluidPage(
                  
                  # Text Input for NA Conversion
                  textInput("na_text", "Handle Sentinel Value ", value = "XNA"),
-                 helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time.Note:Empty entries will be converted to NA directly during model building."),
+                 helpText("Enter Placeholder value (e.g., 'XNA', 'none') that you would like to convert to 'NA' in the dataset. Insert one value at a time. Note:Empty entries will be converted to NA directly during model building."),
                  
                  # Checkbox for Dropping Features with High Missing Values
                  sliderInput("drop_features", 
@@ -198,7 +207,7 @@ ui <- fluidPage(
              titlePanel("Model Evaluation"),
              sidebarLayout(
                sidebarPanel(
-                 helpText("Below, we see confusion matrices for the test and train set.
+                 helpText("Below, we see confusion matrices for the test and train set
                           for the best model from the tuning process before. If evaluation metrics which are described below differ, that means overfitting
                           may have occurred, meaning it would be in your best interest to step down the complexity
                           of your model.

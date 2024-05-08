@@ -4,7 +4,7 @@ username: mjstr
 account: mjstr
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
-appId: 11911372
-bundleId: 8564323
+appId: 11965383
+bundleId: 8594129
 url: https://mjstr.shinyapps.io/credit_card_fraud_detection/
 version: 1

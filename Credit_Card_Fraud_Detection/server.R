@@ -21,7 +21,11 @@ library(shinyjs)
 library(xgboost)
 library("kernlab")
 library(vip)
-
+# my directory: "C:/Users/mjstr/Desktop/Git Repository Final Python Project/FinalAML/Credit_Card_Fraud_Detection"
+# to deploy: 
+# library(rsconnect)
+# rsconnect::setAccountInfo(name='mjstr',token='761AA5873F75D14E28468EA1AFEF1D07',secret='GHErb0NTesBMQiGCD2nylXB0QrLRoe4nqqoROoAs')
+# deployApp("C:/Users/mjstr/Desktop/Git Repository Final Python Project/FinalAML/Credit_Card_Fraud_Detection")
 data_initial <- read.csv("data/subset_application_data.csv", header = TRUE)
 
 data_train <- reactiveVal()
@@ -38,13 +42,9 @@ prob_yes <- function(object, newdata) {                        # wrapper functio
   
 }
 
-one_dist_val <- function(grid) {
+n_dist_grid <- function(grid) {
   unique_ls = sapply(grid, n_distinct)
-  if (sum(unique_ls) - max(unique_ls) == length(unique_ls) - 1){
-    return(TRUE)
-  } else {
-    return(FALSE)
-  }
+  return(sum(unique_ls > 1))
   
   
 }
@@ -190,7 +190,7 @@ server <- function(input, output, session) {
     ##### do na stuff
     req(input$na_text) # placeholder:unable to handle empty string at this moment
     value_to_convert <- input$na_text  # Use the text input directly
-    data <- reactive_dataset()# Access the current dataset
+    data <- File() # Access the current dataset
     converted_count <- 0
     
     # Convert specific value to NA
@@ -216,7 +216,6 @@ server <- function(input, output, session) {
         options = list(scrollY = TRUE, scrollX = TRUE, paging = TRUE)
       )
     })
-    
     ##############################
     
     # do drop stuff #
@@ -227,8 +226,9 @@ server <- function(input, output, session) {
     
     # Drop rows where the target column has NA values
     target_column <- input$target  # replace 'target' with the name of your target column
+
     data <- data[!is.na(data[[target_column]]), ]
-    
+
     # Drop features based on the threshold set by the slider
     threshold <- input$drop_features / 100  # Convert percentage to proportion
     if (threshold > 0) {
@@ -239,7 +239,6 @@ server <- function(input, output, session) {
     } else {
       drop_message <- "No feature dropping threshold set."
     }
-    
     # Render the imputation method message
     output$drop_message <- renderText({ drop_message })
     # Update the reactive dataset with changes
@@ -255,6 +254,7 @@ server <- function(input, output, session) {
         )
       )
     })
+
     ####################
     
     # do split stuff #
@@ -264,7 +264,6 @@ server <- function(input, output, session) {
     if (is.null(data)) {
       return()
     }
-    
     # Use rsample to split the data
     split <- initial_split(data, prop = input$data_split / 100, strata = input$target)  # Split based on slider input
     
@@ -277,7 +276,6 @@ server <- function(input, output, session) {
     # Display the selected percentage of training data
     split_message <- sprintf("Selected training data percentage: %d%%", input$data_split)
     output$data_split_message <- renderText({ split_message })
-    
     ##############################
     
     # do preprocessing stuff
@@ -354,7 +352,6 @@ server <- function(input, output, session) {
     
     transformed_train(transformed_train)
     transformed_test(transformed_test)
-    
   })
   
   
@@ -374,7 +371,7 @@ server <- function(input, output, session) {
   output$tuning_params <- renderUI({
     switch(input$model_type,
            "Random Forest" = tagList(
-             selectizeInput("mtry", "mtry (Number of Variables)", choices = as.character(1:20), options = list(create = TRUE), multiple = TRUE),
+             selectizeInput("mtry", "mtry (Number of Variables)", choices = as.character(1:min(ncol(transformed_train()) - 1, 20)), options = list(create = TRUE), multiple = TRUE),
              selectInput("splitrule", "Splitting Rule", choices = c("Gini" = "gini", "ExtraTrees" = "extratrees", "Hellinger" = "hellinger")),
              selectizeInput("min_node_size", "Minimum Node Size", choices = as.character(1:10), options = list(create = TRUE), multiple = TRUE),
              numericInput("num_tree", "Number of Trees", min = 1, max = 500, value = 50)
@@ -424,17 +421,25 @@ server <- function(input, output, session) {
   observeEvent(input$train_model, {
     
     output$accuracyPlot <- renderUI({
-      if(nrow(tuningParams) == 1){
-        showNotification(paste("Only one set of parameters chosen. For more plots, please choose multiple options from the drop down list for tuning."), type = "warning")
+      if(n_dist_grid(tuningParams) == 0){
+        showNotification(paste("Only one set of parameters chosen. For more plots, please choose multiple options from the drop down lists, eg mtry for RF. "), type = "warning")
+        return()
+      } else if(n_dist_grid(tuningParams) > 4) {
+        showNotification(paste("Too many parameters varied for visualization. For plots, please vary less than 4 at once"), type = "warning")
         return()
       } else {
-        withSpinner(plotOutput("plot"))
+        return(withSpinner(plotOutput("plot")))
       }
     })
     
-    output$plot <- renderPlot({
-
-        ggplot(modelFit)
+    output$plot <- renderPlot({      
+    if(n_dist_grid(tuningParams) == 0){
+      return()
+    } else if(n_dist_grid(tuningParams) > 4) {
+      return()
+    } else {
+      return(ggplot(modelFit))
+    }
 
     })
     
@@ -653,12 +658,15 @@ server <- function(input, output, session) {
     
     #--------------------------- Model Evaluation ---------------------------
     output$roc <- renderPlot({
-      if (nrow(tuningParams) == 1){ # only 1 set of hyperparameters, no tuning
+      if (n_dist_grid(tuningParams) == 0){ # only 1 set of hyperparameters, no tuning
         showNotification(paste("Note there are no graphical evaluation plots because only 1 set of hyperparameters was chosen."),type = "message")
         return()
-      }
-      else if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+        
+      } else if(n_dist_grid(tuningParams) == 1) { # i.e. there is only 1 variable which is being changed
         ggplot(modelFit, metric = "ROC")
+      } else if(n_dist_grid(tuningParams) > 4){
+        showNotification(paste("Note there are no graphical evaluation plots because more than 4 hyperparameters were varied."),type = "message")
+        return()
       } else {
         plot(modelFit, metric = "ROC", plotType = "level")
       }
@@ -666,33 +674,36 @@ server <- function(input, output, session) {
       
     })
     output$ses <- renderPlot({
-      if (nrow(tuningParams) == 1){ # only 1 set of hyperparameters, no tuning
+      if (n_dist_grid(tuningParams) == 0){ # only 1 set of hyperparameters, no tuning
         return()
-      }
-      else if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+      } else if(n_dist_grid(tuningParams) == 1) { # i.e. there is only 1 variable which is being changed
         ggplot(modelFit, metric = "Sens")
+      } else if(n_dist_grid(tuningParams) > 4){
+        return()
       } else {
         plot(modelFit, metric = "Sens", plotType = "level")
       }
     })
     output$spec <- renderPlot({
-      if (nrow(tuningParams) == 1){ # only 1 set of hyperparameters, no tuning
+      if (n_dist_grid(tuningParams) == 0){ # only 1 set of hyperparameters, no tuning
         return()
-      }
-      else if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+      } else if(n_dist_grid(tuningParams) == 1) { # i.e. there is only 1 variable which is being changed
         ggplot(modelFit, metric = "Spec")
+      } else if(n_dist_grid(tuningParams) > 4){
+        return()
       } else {
         plot(modelFit, metric = "Spec", plotType = "level")
       }
     })
     output$rocsd <- renderPlot({
-      if (nrow(tuningParams) == 1){ # only 1 set of hyperparameters, no tuning
+      if (n_dist_grid(tuningParams) == 0){ # only 1 set of hyperparameters, no tuning
         return()
-      }
-      else if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
-        ggplot(modelFit, metric = "Spec")
+      } else if(n_dist_grid(tuningParams) == 1) { # i.e. there is only 1 variable which is being changed
+        ggplot(modelFit, metric = "ROCSD")
+      } else if(n_dist_grid(tuningParams) > 4){
+        return()
       } else {
-        plot(modelFit, metric = "Spec", plotType = "level")
+        plot(modelFit, metric = "ROCSD", plotType = "level")
       }
     })
     
