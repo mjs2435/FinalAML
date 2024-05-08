@@ -116,9 +116,7 @@ ui <- fluidPage(
                              choices = c(
                                          "KNN Imputation" = "knn",
                                          "Mean & Mode Imputation" = "mean_mode",
-                                         "Median & Median Imputation" = "median_mode",
-                                         "Drop Observations with NAs" = "drop_na",
-                                         "None" = "none")),
+                                         "Median & Median Imputation" = "median_mode")),
                  
                  #helpText("Choose an imputation method to handle missing data in the dataset."),
                  
@@ -200,7 +198,27 @@ ui <- fluidPage(
              titlePanel("Model Evaluation"),
              sidebarLayout(
                sidebarPanel(
-                 helpText("todo: adding some description about all the graph produce"),
+                 helpText("Below, we see line plots (if we are only tuning one variable) or a heatmap 
+                          (if we are tuning multiple) on our test set. For all metrics, higher is better.
+                          ROC is the metric which was used to determine what model is best, and is a
+                          measure of the model performance at all levels of class splitting. Sensitivity
+                          measures accuracy on the positive class, and specificity is on the negative (as
+                          indicated by lexicographic order of binary classes). ROCSD is similar to ROC, but
+                          it is applied to unbalanced datasets.",
+                          tags$br(),
+                          tags$br(),
+                          "
+                          Going to the evaluation tab, we see confusion matrices for the test and train set.
+                          for the best model from the tuning process before. If they differ, that means overfitting
+                          may have occurred, meaning it might be in your best interest to step down the complexity
+                          of your model.
+                          ",
+                          tags$br(),
+                          tags$br(),
+                          "
+                          Finally, we have the VIP plot, which gives us the most important variables for the best model
+                          trained. These are named by the columns of your input dataset.
+                          "),
                ),
                mainPanel(
                  tabsetPanel(

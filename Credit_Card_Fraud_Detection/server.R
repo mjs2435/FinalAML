@@ -319,9 +319,7 @@ server <- function(input, output, session) {
     blueprint <- switch(input$impute_method,
                         "mean_mode" = { blueprint <-blueprint %>% step_impute_mean(all_numeric_predictors())%>%step_impute_mode(all_nominal_predictors()); pre_message <- paste(pre_message, "Mean imputation for numeric predictors,Mode imputation for nominal predictors,"); blueprint },
                         "median_mode" = { blueprint <-blueprint %>% step_impute_median(all_numeric_predictors()) %>% step_impute_mode(all_nominal_predictors()); pre_message <- paste(pre_message, "Median imputation for numeric predictors,Mode imputation for nominal predictors,"); blueprint },
-                        "knn" = { blueprint <-blueprint %>% step_impute_knn(all_predictors()); pre_message <- paste(pre_message, "KNN imputation for all predictors,"); blueprint },
-                        "drop_na" = { train_data <<- na.omit(train_data); test_data <<- na.omit(test_data); pre_message <- paste(pre_message, "Drop all rows with NAs,"); blueprint },
-                        blueprint # Default case to handle 'none' or unexpected input
+                        "knn" = { blueprint <-blueprint %>% step_impute_knn(all_predictors()); pre_message <- paste(pre_message, "KNN imputation for all predictors,"); blueprint }
     )
     
     if (input$normalize_data) {
