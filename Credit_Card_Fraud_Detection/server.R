@@ -56,6 +56,8 @@ server <- function(input, output, session) {
   # Reactive expression to handle file upload or selection
   
   File <- reactive({
+    transformed_train(NULL)
+    transformed_test(NULL)
     if (input$dataset == 'Upload your own file') {
       req(input$file)
       File <- input$file
