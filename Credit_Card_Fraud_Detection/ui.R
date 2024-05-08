@@ -198,31 +198,42 @@ ui <- fluidPage(
              titlePanel("Model Evaluation"),
              sidebarLayout(
                sidebarPanel(
-                 helpText("Below, we see line plots (if we are only tuning one variable) or a heatmap 
-                          (if we are tuning multiple) on our test set. For all metrics, higher is better.
-                          ROC is the metric which was used to determine what model is best, and is a
-                          measure of the model performance at all levels of class splitting. Sensitivity
-                          measures accuracy on the positive class, and specificity is on the negative (as
-                          indicated by lexicographic order of binary classes). ROCSD is similar to ROC, but
-                          it is applied to unbalanced datasets.",
-                          tags$br(),
-                          tags$br(),
-                          "
-                          Going to the evaluation tab, we see confusion matrices for the test and train set.
-                          for the best model from the tuning process before. If they differ, that means overfitting
-                          may have occurred, meaning it might be in your best interest to step down the complexity
+                 helpText("Below, we see confusion matrices for the test and train set.
+                          for the best model from the tuning process before. If evaluation metrics which are described below differ, that means overfitting
+                          may have occurred, meaning it would be in your best interest to step down the complexity
                           of your model.
+                          
                           ",
                           tags$br(),
                           tags$br(),
                           "
-                          Finally, we have the VIP plot, which gives us the most important variables for the best model
-                          trained. These are named by the columns of your input dataset.
+                          Going to the Variable Importance tab, we see the VIP plot, which gives us the most relevant variables for the best model
+                          trained. These are named by the columns of your input dataset. A higher score closer to 100 means that if that variable were removed
+                          from training, it would drop ROC the most.
+                          ",
+                          tags$br(),
+                          tags$br(),
+                          "
+                          Finally, we come across the line plots (if we are only tuning one variable) or a heatmap 
+                          (if we are tuning multiple) for every hyperparameter in the training result folder. 
+                          For all metrics, higher is better.
+                          ROC is the metric which was used to determine what model is best, and is a
+                          measure of the model performance at all levels of class splitting. Sensitivity
+                          measures accuracy on the positive class, and specificity is on the negative (as
+                          indicated by lexicographic order of binary classes). ROCSD is similar to ROC, but corrects for
+                          unbalanced datasets.
                           "),
                ),
                mainPanel(
                  tabsetPanel(
                    tabsetPanel(
+                     tabPanel("Numerical Evaluation", 
+                              tags$h3(strong("Training Set Result")),
+                              verbatimTextOutput("train_metrics"),
+                              tags$h3(strong("Testing Set Result")),
+                              verbatimTextOutput("test_metrics")
+                     ),
+                     tabPanel("Variable Importance", plotOutput("vipPlot")),
                      tabPanel("Graphical Evaluation",
                               tags$h3(strong("Detailed Training Result")),
                               plotOutput("roc"),
@@ -234,13 +245,8 @@ ui <- fluidPage(
                               # plotOutput("train_plot"),
                               # tags$h3(strong("Testing Result")),
                               # plotOutput("test_plot")
-                     ),
-                     tabPanel("Numerical Evaluation", 
-                              tags$h3(strong("Training Set Result")),
-                              verbatimTextOutput("train_metrics"),
-                              tags$h3(strong("Testing Set Result")),
-                              verbatimTextOutput("test_metrics")
-                     ),tabPanel("Variable Importance", plotOutput("vipPlot"))
+                     )
+
                    )
                  )
                )

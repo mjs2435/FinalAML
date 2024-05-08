@@ -310,7 +310,7 @@ server <- function(input, output, session) {
     if (input$remove_zero_var) {
       blueprint <- blueprint %>% step_nzv(all_predictors())
       pre_message <- paste(pre_message, "Remove near zero variance predictors,")
-    }else {
+    } else {
       blueprint <- blueprint %>% step_zv(all_predictors())
       pre_message <- paste(pre_message, "Remove equal to zero variance predictors,")
     }
@@ -424,11 +424,18 @@ server <- function(input, output, session) {
   observeEvent(input$train_model, {
     
     output$accuracyPlot <- renderUI({
-      withSpinner(plotOutput("plot"))
+      if(nrow(tuningParams) == 1){
+        showNotification(paste("Only one set of parameters chosen. For more plots, please choose multiple options from the drop down list for tuning."), type = "warning")
+        return()
+      } else {
+        withSpinner(plotOutput("plot"))
+      }
     })
     
     output$plot <- renderPlot({
-      ggplot(modelFit)
+
+        ggplot(modelFit)
+
     })
     
     output$bestParameters <- renderText({
@@ -637,7 +644,7 @@ server <- function(input, output, session) {
       )
     }
     
-    showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message",duration = NULL)
+    showNotification(paste("Final model saved! Move on to the model eveluation for detailed summary"),type = "message")
     ######## Visulize Training process ########
     train_pred <- predict(final_model, newdata = transformed_train)
     test_pred <- predict(final_model, newdata = transformed_test)
@@ -646,7 +653,11 @@ server <- function(input, output, session) {
     
     #--------------------------- Model Evaluation ---------------------------
     output$roc <- renderPlot({
-      if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+      if (nrow(tuningParams) == 1){ # only 1 set of hyperparameters, no tuning
+        showNotification(paste("Note there are no graphical evaluation plots because only 1 set of hyperparameters was chosen."),type = "message")
+        return()
+      }
+      else if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
         ggplot(modelFit, metric = "ROC")
       } else {
         plot(modelFit, metric = "ROC", plotType = "level")
@@ -655,21 +666,30 @@ server <- function(input, output, session) {
       
     })
     output$ses <- renderPlot({
-      if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+      if (nrow(tuningParams) == 1){ # only 1 set of hyperparameters, no tuning
+        return()
+      }
+      else if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
         ggplot(modelFit, metric = "Sens")
       } else {
         plot(modelFit, metric = "Sens", plotType = "level")
       }
     })
     output$spec <- renderPlot({
-      if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+      if (nrow(tuningParams) == 1){ # only 1 set of hyperparameters, no tuning
+        return()
+      }
+      else if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
         ggplot(modelFit, metric = "Spec")
       } else {
         plot(modelFit, metric = "Spec", plotType = "level")
       }
     })
     output$rocsd <- renderPlot({
-      if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
+      if (nrow(tuningParams) == 1){ # only 1 set of hyperparameters, no tuning
+        return()
+      }
+      else if(one_dist_val(tuningParams)) { # i.e. there is only 1 variable which is being changed
         ggplot(modelFit, metric = "Spec")
       } else {
         plot(modelFit, metric = "Spec", plotType = "level")
